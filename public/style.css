@@ -99,7 +99,6 @@ body {
     box-shadow: 0 0 10px rgba(0, 123, 255, 0.5);
 }
 
-/* Opções do dropdown (no Windows/Android podem ter fundo branco, isso é padrão do SO) */
 #voice-select option, #voice-select-call option {
     background-color: #222;
     color: #FFF;
@@ -218,11 +217,13 @@ body {
 #call-screen {
     align-items: center;
     justify-content: space-between;
-    padding: 40px 20px 100px 20px;
+    /* 🌟 Ajuste no padding inferior para não cortar o botão */
+    padding: 20px 20px calc(60px + env(safe-area-inset-bottom, 20px)) 20px; 
 }
 
 #call-screen header {
     text-align: center;
+    margin-top: 10px;
 }
 
 #call-screen h1 {
@@ -244,14 +245,15 @@ body {
     justify-content: center;
     align-items: center;
     flex-grow: 1;
-    padding-bottom: 120px;
+    /* 🌟 Reduzido para não empurrar o botão para fora da tela */
+    padding-bottom: 20px; 
     width: 100%;
 }
 
 .circle {
     width: 250px;
     height: 250px;
-    background-color: #9B30FF; /* Roxo (Padrão) */
+    background-color: #9B30FF;
     border-radius: 50%;
     transition: all 0.3s ease;
 }
@@ -276,6 +278,8 @@ body {
     width: 100%;
     display: flex;
     justify-content: center;
+    /* 🌟 Margem extra de segurança */
+    margin-bottom: 20px;
 }
 
 .btn-container {
