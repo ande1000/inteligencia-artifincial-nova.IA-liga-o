@@ -3,7 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const path = require('path');
-const { MsEdgeTTS, OUTPUT_FORMAT } = require("msedge-tts");
+const gTTS = require('gtts');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -14,36 +14,41 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
+// ==========================================
+// ROTA DE VOZ (GOOGLE TRANSLATE TTS - gTTS)
+// ==========================================
 app.post('/api/tts', async (req, res) => {
     try {
         const { text } = req.body;
         if (!text) return res.status(400).json({ error: 'Texto vazio' });
 
-        const tts = new MsEdgeTTS();
-        await tts.setMetadata("pt-BR-AntonioNeural", OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
-        
-        const { audioStream } = tts.toStream(text);
-        const chunks = [];
-        
-        audioStream.on('data', (chunk) => chunks.push(chunk));
-        
-        audioStream.on('end', () => {
-            const audioBuffer = Buffer.concat(chunks);
-            const audioBase64 = audioBuffer.toString('base64');
-            res.json({ audioContent: audioBase64 });
-        });
+        console.log("🎤 Tentando gerar áudio com gTTS para o texto:", text);
 
-        audioStream.on('error', (err) => {
-            console.error('Erro no stream de áudio:', err);
-            res.status(500).json({ error: 'Erro ao gerar áudio.' });
-        });
+        const gtts = new gTTS(text, 'pt-br');
+        const chunks = [];
+
+        gtts.stream()
+            .on('data', (chunk) => chunks.push(chunk))
+            .on('end', () => {
+                const audioBuffer = Buffer.concat(chunks);
+                const audioBase64 = audioBuffer.toString('base64');
+                console.log("✅ Áudio gerado com sucesso pelo gTTS!");
+                res.json({ audioContent: audioBase64 });
+            })
+            .on('error', (err) => {
+                console.error('❌ Erro no stream de áudio do gTTS:', err);
+                res.status(500).json({ error: 'Erro ao gerar áudio.' });
+            });
 
     } catch (error) {
-        console.error('ERRO DETALHADO NO EDGE TTS:', error.message);
+        console.error('❌ ERRO DETALHADO NO gTTS:', error.message);
         res.status(500).json({ error: 'Erro ao gerar áudio.' });
     }
 });
 
+// ==========================================
+// ROTA DO CHAT (GEMINI)
+// ==========================================
 app.post('/api/chat', async (req, res) => {
     try {
         const { message } = req.body;
