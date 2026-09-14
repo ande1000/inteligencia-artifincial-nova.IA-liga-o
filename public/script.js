@@ -9,20 +9,17 @@ const circle = document.getElementById('circle');
 // ==========================================
 // ⚙️ PERSONALIZAÇÃO: RESPOSTAS PROGRAMADAS
 // ==========================================
-// Adicione aqui as palavras-chave e o que a IA deve responder.
-// Importante: A palavra-chave deve estar em letras minúsculas e sem acentos.
 const respostasPersonalizadas = {
     "quem é você": "Olá! Eu sou a nova.IA, uma inteligência artificial criada pelo Anderson para conversar com você.",
     "quem te criou": "Fui criada pelo Anderson, o gênio da tecnologia!",
-    "chave pix": "Claro! Minha chave pix é o telefone 91 13 05 08.",
-    "seu contato": "Anota aí, DDD 77 e número 91 13 05 08. Me manda uma mensagem no zap!",
-    "sim": "Ok, Anderson! Mas fale mais alguma coisa.",
-    "nova ia": "Oi, eu sou a nova.IA!",
+    "chave pix": "telefone!",
+    "seu contato": "anota ai, ddd 77 e numero 91,13,05,08 ,me manda uma mensagem no zap!",
+    "sim": "ok anderson, mas alguma coisa!",
+    "nova ia": "oi sou uma ia !",     
     "qual é a sua cor favorita": "Minha cor favorita é roxo, a cor do meu círculo brilhante!",
     "conte uma piada": "O que o pato disse para a pata? Vem quá! Ha ha ha!",
-    "bom dia": "Bom dia, Anderson! Como posso ajudar você hoje?",
-    "boa noite": "Boa noite, Anderson! Vá dormir bem, estou aqui se precisar.",
-    // 🔥 NOVAS PALAVRAS-CHAVE ADICIONADAS:
+    "bom dia": "Bom dia! Como posso ajudar você hoje?",
+    "boa noite": "Boa noite! Vá dormir bem, estou aqui se precisar.",
     "tudo bem": "Tudo ótimo! Pronta para ajudar no que você precisar.",
     "o que você faz": "Eu sou uma inteligência artificial de ligação. Posso responder perguntas, contar piadas e conversar com você.",
     "modo hacker": "Acesso concedido. Bem-vindo ao sistema, Anderson!",
@@ -77,7 +74,7 @@ if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
         const userMessage = event.results[0][0].transcript;
         if (!userMessage.trim()) return;
         stopListening();
-        await sendToAI(userMessage); // Envia a mensagem para a função que decide o que fazer
+        await sendToAI(userMessage);
     };
     
     recognition.onerror = (event) => { isListening = false; };
@@ -129,18 +126,16 @@ function endCall() {
 // 🌟 AQUI ACONTECE A MÁGICA DAS PALAVRAS-CHAVE
 // ==========================================
 async function sendToAI(message) {
-    const msgLower = message.toLowerCase(); // Transforma a fala em minúsculas para comparar
+    const msgLower = message.toLowerCase();
 
-    // 1. Verifica se a mensagem contém alguma palavra-chave personalizada
     for (const [palavraChave, resposta] of Object.entries(respostasPersonalizadas)) {
         if (msgLower.includes(palavraChave)) {
             console.log(`🎯 Palavra-chave detectada: "${palavraChave}"`);
-            playAudioResponse(resposta); // Responde na hora, sem ir ao Gemini
-            return; // Para aqui e não gasta a cota do Google
+            playAudioResponse(resposta);
+            return;
         }
     }
 
-    // 2. Se não achou palavra-chave, envia para o Gemini normalmente
     try {
         const response = await fetch('/api/chat', {
             method: 'POST',
@@ -157,19 +152,39 @@ async function sendToAI(message) {
     }
 }
 
-function playAudioResponse(text) {
-    if (!('speechSynthesis' in window)) return;
+// ==========================================
+// FUNÇÃO DE ÁUDIO ATUALIZADA (Buscando do Servidor)
+// ==========================================
+async function playAudioResponse(text) {
+    if (!text) return;
+    
     isSpeaking = true;
     stopListening();
-    
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'pt-BR';
-    utterance.rate = 1.0; 
-    
-    utterance.onend = () => {
+
+    try {
+        const response = await fetch('/api/tts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: text })
+        });
+
+        if (!response.ok) throw new Error('Falha ao gerar áudio no servidor');
+
+        const data = await response.json();
+        const audioBase64 = data.audioContent;
+        
+        const audio = new Audio(`data:audio/mp3;base64,${audioBase64}`);
+        
+        audio.onended = () => {
+            isSpeaking = false;
+            if (isCalling) startListening();
+        };
+        
+        await audio.play();
+
+    } catch (error) {
+        console.error("Erro ao gerar ou reproduzir áudio:", error);
         isSpeaking = false;
         if (isCalling) startListening();
-    };
-    
-    window.speechSynthesis.speak(utterance);
+    }
 }
