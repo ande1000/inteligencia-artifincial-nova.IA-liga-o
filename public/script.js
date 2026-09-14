@@ -5,6 +5,8 @@ let isListening = false;
 let wakeLock = null;
 
 const circle = document.getElementById('circle');
+const callBtn = document.getElementById('call-btn');
+const offBtn = document.getElementById('off-btn');
 
 // ==========================================
 // ⚙️ PERSONALIZAÇÃO: RESPOSTAS PROGRAMADAS
@@ -23,11 +25,7 @@ const respostasPersonalizadas = {
     "o que você faz": "Eu sou uma inteligência artificial de ligação. Posso responder perguntas, contar piadas e conversar com você.",
     "modo hacker": "Acesso concedido. Bem-vindo ao sistema, Anderson!",
     "tchau": "Até logo, Anderson! Foi um prazer falar com você.",
-    "desligar": "Não posso desligar a ligação, apenas você pode fazer isso apertando o botão vermelho!",
-    
-    // ==========================================
-    // 🤣 MODO ZOEIRA (NOVAS PALAVRAS-CHAVE)
-    // ==========================================
+    "desligar": "Não posso desligar a ligação, apenas você pode fazer isso apertando o botão verde!",
     "conte uma piada": "O que o pato disse para a pata? Vem quá! Ha ha ha!",
     "alo": "Alô, é do além? Hahaha! Brincadeira, fala logo o que você quer!",
     "bom dia é o escambau": "Bom dia é o escambau, hoje é dia de trabalhar!",
@@ -78,7 +76,7 @@ if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
 
     recognition.onstart = () => { 
         isListening = true; 
-        circle.classList.add('listening'); // 🔥 Fica Verde
+        circle.classList.add('listening'); 
     };
     
     recognition.onresult = async (event) => {
@@ -95,7 +93,7 @@ if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
     
     recognition.onend = () => {
         isListening = false;
-        circle.classList.remove('listening'); // 🔥 Volta para Roxo
+        circle.classList.remove('listening'); 
         if (isCalling && !isSpeaking) setTimeout(startListening, 800);
     };
 } else {
@@ -122,7 +120,12 @@ function stopListening() {
 async function startCall() {
     if (isCalling) return;
     isCalling = true;
-    circle.classList.add('active'); // Começa a piscar
+    
+    // Troca os botões: Esconde o Vermelho, Mostra o Verde
+    callBtn.classList.add('hidden');
+    offBtn.classList.remove('hidden');
+    
+    circle.classList.add('active'); 
     console.log("Ligação iniciada...");
     await requestWakeLock(); 
     
@@ -141,6 +144,11 @@ function endCall() {
     circle.classList.remove('active', 'listening', 'speaking');
     console.log("Ligação encerrada.");
     releaseWakeLock();
+    
+    // Troca os botões: Esconde o Verde, Mostra o Vermelho
+    offBtn.classList.add('hidden');
+    callBtn.classList.remove('hidden');
+    
     if (recognition) { try { recognition.stop(); } catch(e){} }
     window.speechSynthesis.cancel();
 }
@@ -183,16 +191,16 @@ function playAudioResponse(text) {
     
     isSpeaking = true;
     stopListening();
-    circle.classList.add('speaking'); // 🔥 Fica Vermelho
+    circle.classList.add('speaking'); 
 
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'pt-BR';
     utterance.rate = 1.0; 
-    utterance.pitch = 1.2; // 🔥 Voz mais aguda (feminina). Mude para 1.0 se quiser masculina.
+    utterance.pitch = 1.2; // Voz mais aguda (feminina). Mude para 1.0 se quiser masculina.
 
     utterance.onend = () => {
         isSpeaking = false;
-        circle.classList.remove('speaking'); // 🔥 Volta para Roxo
+        circle.classList.remove('speaking'); 
         if (isCalling) startListening();
     };
 
@@ -200,7 +208,7 @@ function playAudioResponse(text) {
 }
 
 // ==========================================
-// SOM DE DISCAGEM (TRIM TRIM)
+// SOM DE DISCAGEM (NOTIFICAÇÃO)
 // ==========================================
 function playDialTone() {
     try {
@@ -209,14 +217,14 @@ function playDialTone() {
         const gainNode = audioCtx.createGain();
         
         oscillator.type = 'sine';
-        oscillator.frequency.setValueAtTime(400, audioCtx.currentTime); // Frequência do som
-        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); // Volume do som
+        oscillator.frequency.setValueAtTime(400, audioCtx.currentTime); 
+        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); 
         
         oscillator.connect(gainNode);
         gainNode.connect(audioCtx.destination);
         
         oscillator.start();
-        oscillator.stop(audioCtx.currentTime + 0.2); // Duração de 0.2 segundos
+        oscillator.stop(audioCtx.currentTime + 0.2); 
     } catch (e) {
         console.log("Navegador não suporta som de discagem.");
     }
