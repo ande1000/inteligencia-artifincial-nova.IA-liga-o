@@ -4,22 +4,85 @@ let isSpeaking = false;
 let isListening = false;
 let wakeLock = null;
 let currentPersonality = 'normal';
-let hasGreeted = false; // 🌟 Controla se a saudação inicial já foi enviada
+let hasGreeted = false;
+let selectedVoice = null; // 🌟 Guarda a voz escolhida
 
 // Elementos da Tela 1 (Chat)
 const homeScreen = document.getElementById('home-screen');
 const callScreen = document.getElementById('call-screen');
 const chatMessages = document.getElementById('chat-messages');
 const textInput = document.getElementById('text-input');
+const voiceSelect = document.getElementById('voice-select');
+const voiceSelectCall = document.getElementById('voice-select-call');
 
 // Elementos da Tela 2 (Chamada)
 const circle = document.getElementById('circle');
 
 // ==========================================
+// 🌟 SISTEMA DE VOZES (CARREGAR E SELECIONAR)
+// ==========================================
+function loadVoices() {
+    const voices = window.speechSynthesis.getVoices();
+    
+    // Filtra apenas vozes em Português (Brasil ou Portugal)
+    const ptVoices = voices.filter(v => v.lang.includes('pt'));
+    
+    // Limpa as opções atuais
+    voiceSelect.innerHTML = '';
+    voiceSelectCall.innerHTML = '';
+
+    if (ptVoices.length === 0) {
+        // Se não achar vozes em português, adiciona todas
+        voices.forEach((voice, index) => {
+            const option = document.createElement('option');
+            option.value = index;
+            option.textContent = `${voice.name} (${voice.lang})`;
+            voiceSelect.appendChild(option.cloneNode(true));
+            voiceSelectCall.appendChild(option);
+        });
+    } else {
+        ptVoices.forEach((voice, index) => {
+            const option = document.createElement('option');
+            option.value = index;
+            // Deixa o nome mais limpo
+            option.textContent = `${voice.name.replace('Microsoft', '').replace('Google', '').trim()} (${voice.lang})`;
+            voiceSelect.appendChild(option.cloneNode(true));
+            voiceSelectCall.appendChild(option);
+        });
+    }
+
+    // Seleciona a primeira voz por padrão
+    if (voiceSelect.options.length > 0) {
+        voiceSelect.selectedIndex = 0;
+        voiceSelectCall.selectedIndex = 0;
+        selectedVoice = ptVoices.length > 0 ? ptVoices[0] : voices[0];
+    }
+}
+
+// Carrega as vozes quando a página abre
+window.speechSynthesis.onvoiceschanged = loadVoices;
+loadVoices(); // Tenta carregar imediatamente também
+
+// Quando o usuário troca a voz na tela inicial
+voiceSelect.addEventListener('change', () => {
+    const voices = window.speechSynthesis.getVoices().filter(v => v.lang.includes('pt'));
+    const allVoices = voices.length > 0 ? voices : window.speechSynthesis.getVoices();
+    selectedVoice = allVoices[voiceSelect.value];
+    voiceSelectCall.value = voiceSelect.value; // Sincroniza com o da tela de chamada
+});
+
+// Quando o usuário troca a voz na tela de chamada
+voiceSelectCall.addEventListener('change', () => {
+    const voices = window.speechSynthesis.getVoices().filter(v => v.lang.includes('pt'));
+    const allVoices = voices.length > 0 ? voices : window.speechSynthesis.getVoices();
+    selectedVoice = allVoices[voiceSelectCall.value];
+    voiceSelect.value = voiceSelectCall.value; // Sincroniza com o da tela inicial
+});
+
+// ==========================================
 // ⚙️ PERSONALIZAÇÃO: RESPOSTAS PROGRAMADAS
 // ==========================================
 const respostasPersonalizadas = {
-    // --- SUAS RESPOSTAS ORIGINAIS ---
     "quem é você": "Olá! Eu sou a nova.IA, uma inteligência artificial criada pelo Anderson para conversar com você.",
     "quem te criou": "Fui criada pelo Anderson, o gênio da tecnologia!",
     "chave pix": "telefone!",
@@ -28,8 +91,6 @@ const respostasPersonalizadas = {
     "o que você faz": "Eu sou uma inteligência artificial de ligação. Posso responder perguntas, contar piadas e conversar com você.",
     "modo hacker": "Acesso concedido. Bem-vindo ao sistema, Anderson!",
     "desligar": "Não posso desligar a ligação, apenas você pode fazer isso apertando o botão verde!",
-
-    // --- SAUDAÇÕES E DESPEDIDAS BÁSICAS ---
     "bom dia": "Olá, bom dia! Como posso ajudar?",
     "boa tarde": "Boa tarde, Anderson!",
     "boa noite": "Muito boa noite!",
@@ -37,8 +98,6 @@ const respostasPersonalizadas = {
     "oi": "Olá, como você está?",
     "tchau": "Já vai? Foi um prazer falar com você!",
     "até logo": "Até logo, Anderson!",
-
-    // --- 🤣 MODO ZOEIRA (PIADAS E RESPOSTAS ENGRAÇADAS) ---
     "conte uma piada": "O que o pato disse para a pata? Vem quá! Ha ha ha!",
     "alo": "Alô, é do além? Hahaha! Brincadeira, fala logo o que você quer!",
     "bom dia é o escambau": "Bom dia é o escambau, hoje é dia de trabalhar!",
@@ -82,21 +141,18 @@ async function sendTextMessage() {
     const message = textInput.value.trim();
     if (!message) return;
 
-    // Adiciona a mensagem do usuário na tela
     addMessageToChat(message, 'user');
     textInput.value = '';
 
-    // 🌟 NOVA LÓGICA: Envia a saudação apenas na primeira mensagem
     if (!hasGreeted) {
         hasGreeted = true;
         setTimeout(() => {
             addMessageToChat("Olá! Eu sou a nova.IA. Como posso ajudar você hoje?", 'ai');
-        }, 800); // Pequeno atraso para parecer natural
+        }, 800);
     }
 
     const msgLower = message.toLowerCase();
 
-    // 1. Verifica comando de personalidade
     for (const [comando, dados] of Object.entries(comandosPersonalidade)) {
         if (msgLower.includes(comando)) {
             currentPersonality = dados.personality;
@@ -105,7 +161,6 @@ async function sendTextMessage() {
         }
     }
 
-    // 2. Verifica palavras-chave personalizadas
     for (const [palavraChave, resposta] of Object.entries(respostasPersonalizadas)) {
         if (msgLower.includes(palavraChave)) {
             setTimeout(() => addMessageToChat(resposta, 'ai'), 1200);
@@ -113,7 +168,6 @@ async function sendTextMessage() {
         }
     }
 
-    // 3. Se não achou nada, envia para o Gemini
     try {
         addMessageToChat("Pensando...", 'ai', true);
         const response = await fetch('/api/chat', {
@@ -260,7 +314,6 @@ function endCall() {
 async function sendVoiceToAI(message) {
     const msgLower = message.toLowerCase();
 
-    // 1. Verifica comando de personalidade
     for (const [comando, dados] of Object.entries(comandosPersonalidade)) {
         if (msgLower.includes(comando)) {
             currentPersonality = dados.personality;
@@ -269,7 +322,6 @@ async function sendVoiceToAI(message) {
         }
     }
 
-    // 2. Verifica palavras-chave
     for (const [palavraChave, resposta] of Object.entries(respostasPersonalizadas)) {
         if (msgLower.includes(palavraChave)) {
             console.log(`🎯 Palavra-chave detectada: "${palavraChave}"`);
@@ -278,7 +330,6 @@ async function sendVoiceToAI(message) {
         }
     }
 
-    // 3. Envia para o Gemini com a personalidade atual
     try {
         const response = await fetch('/api/chat', {
             method: 'POST',
@@ -295,6 +346,9 @@ async function sendVoiceToAI(message) {
     }
 }
 
+// ==========================================
+// 🌟 FUNÇÃO DE ÁUDIO COM SOM DE NOTIFICAÇÃO
+// ==========================================
 function playAudioResponse(text) {
     if (!text) return;
     
@@ -302,20 +356,69 @@ function playAudioResponse(text) {
     stopListening();
     circle.classList.add('speaking'); 
 
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'pt-BR';
-    utterance.rate = 1.0; 
-    utterance.pitch = 1.2; // Voz feminina
+    // 🔔 Toca o som de notificação ANTES de falar
+    playNotificationSound();
 
-    utterance.onend = () => {
-        isSpeaking = false;
-        circle.classList.remove('speaking'); 
-        if (isCalling) startListening();
-    };
+    // Pequeno atraso para o som de notificação tocar antes da voz
+    setTimeout(() => {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'pt-BR';
+        utterance.rate = 1.0; 
+        
+        // 🌟 USA A VOZ SELECIONADA PELO USUÁRIO
+        if (selectedVoice) {
+            utterance.voice = selectedVoice;
+        } else {
+            utterance.pitch = 1.2; // Fallback (voz feminina padrão)
+        }
 
-    window.speechSynthesis.speak(utterance);
+        utterance.onend = () => {
+            isSpeaking = false;
+            circle.classList.remove('speaking'); 
+            if (isCalling) startListening();
+        };
+
+        window.speechSynthesis.speak(utterance);
+    }, 400); // 400ms de atraso para o sino tocar
 }
 
+// 🔔 SOM DE NOTIFICAÇÃO (Tipo "Plim!")
+function playNotificationSound() {
+    try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // Primeiro tom (mais agudo)
+        const osc1 = audioCtx.createOscillator();
+        const gain1 = audioCtx.createGain();
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(880, audioCtx.currentTime); // Nota Lá
+        gain1.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        gain1.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+        osc1.connect(gain1);
+        gain1.connect(audioCtx.destination);
+        osc1.start();
+        osc1.stop(audioCtx.currentTime + 0.3);
+
+        // Segundo tom (mais grave, logo depois)
+        setTimeout(() => {
+            const osc2 = audioCtx.createOscillator();
+            const gain2 = audioCtx.createGain();
+            osc2.type = 'sine';
+            osc2.frequency.setValueAtTime(660, audioCtx.currentTime); // Nota Mi
+            gain2.gain.setValueAtTime(0.15, audioCtx.currentTime);
+            gain2.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+            osc2.connect(gain2);
+            gain2.connect(audioCtx.destination);
+            osc2.start();
+            osc2.stop(audioCtx.currentTime + 0.4);
+        }, 150);
+        
+    } catch (e) {
+        console.log("Navegador não suporta som de notificação.");
+    }
+}
+
+// Som de discagem (trim)
 function playDialTone() {
     try {
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
