@@ -38,7 +38,7 @@ body {
 
 #home-screen header {
     text-align: center;
-    margin-top: 20px;
+    margin-top: 10px;
 }
 
 .logo-icon {
@@ -64,6 +64,45 @@ body {
     font-weight: bold;
     letter-spacing: 1px;
     margin-top: 5px;
+}
+
+/* 🌟 ESTILO DO SELETOR DE VOZES */
+.voice-selector-container {
+    margin-top: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+.voice-selector-container label {
+    font-size: 0.8rem;
+    color: #AAA;
+    font-weight: bold;
+}
+
+#voice-select, #voice-select-call {
+    background-color: #222;
+    color: #FFF;
+    border: 1px solid #444;
+    border-radius: 20px;
+    padding: 8px 15px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    outline: none;
+    width: 200px;
+    text-align: center;
+}
+
+#voice-select:focus, #voice-select-call:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 10px rgba(0, 123, 255, 0.5);
+}
+
+/* Opções do dropdown (no Windows/Android podem ter fundo branco, isso é padrão do SO) */
+#voice-select option, #voice-select-call option {
+    background-color: #222;
+    color: #FFF;
 }
 
 .chat-container {
