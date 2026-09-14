@@ -4,6 +4,7 @@ let isSpeaking = false;
 let isListening = false;
 let wakeLock = null;
 let currentPersonality = 'normal';
+let hasGreeted = false; // 🌟 Controla se a saudação inicial já foi enviada
 
 // Elementos da Tela 1 (Chat)
 const homeScreen = document.getElementById('home-screen');
@@ -81,8 +82,17 @@ async function sendTextMessage() {
     const message = textInput.value.trim();
     if (!message) return;
 
+    // Adiciona a mensagem do usuário na tela
     addMessageToChat(message, 'user');
     textInput.value = '';
+
+    // 🌟 NOVA LÓGICA: Envia a saudação apenas na primeira mensagem
+    if (!hasGreeted) {
+        hasGreeted = true;
+        setTimeout(() => {
+            addMessageToChat("Olá! Eu sou a nova.IA. Como posso ajudar você hoje?", 'ai');
+        }, 800); // Pequeno atraso para parecer natural
+    }
 
     const msgLower = message.toLowerCase();
 
@@ -90,7 +100,7 @@ async function sendTextMessage() {
     for (const [comando, dados] of Object.entries(comandosPersonalidade)) {
         if (msgLower.includes(comando)) {
             currentPersonality = dados.personality;
-            setTimeout(() => addMessageToChat(dados.resposta, 'ai'), 500);
+            setTimeout(() => addMessageToChat(dados.resposta, 'ai'), 1200);
             return;
         }
     }
@@ -98,7 +108,7 @@ async function sendTextMessage() {
     // 2. Verifica palavras-chave personalizadas
     for (const [palavraChave, resposta] of Object.entries(respostasPersonalizadas)) {
         if (msgLower.includes(palavraChave)) {
-            setTimeout(() => addMessageToChat(resposta, 'ai'), 500);
+            setTimeout(() => addMessageToChat(resposta, 'ai'), 1200);
             return;
         }
     }
