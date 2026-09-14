@@ -12,8 +12,8 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: space-between;
-    height: 100vh;
-    padding: 40px 20px;
+    height: 100dvh; /* Melhor para celulares */
+    padding: 40px 20px 100px 20px; /* Aumenta o espaço embaixo para subir os botões */
     overflow: hidden;
 }
 
@@ -40,6 +40,8 @@ main {
     justify-content: center;
     align-items: center;
     flex-grow: 1;
+    padding-bottom: 120px; /* Empurra a bola roxa para cima */
+    width: 100%;
 }
 
 .circle {
@@ -68,6 +70,7 @@ footer {
     display: flex;
     justify-content: space-between;
     width: 100%;
+    padding: 0 10px;
 }
 
 button {
