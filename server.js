@@ -1,7 +1,6 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const axios = require('axios');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const path = require('path');
 
@@ -15,61 +14,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 // ==========================================
-// ROTA DE VOZ (FISH AUDIO - VOZ CLONADA)
-// ==========================================
-app.post('/api/tts', async (req, res) => {
-    try {
-        const { text } = req.body;
-        if (!text) return res.status(400).json({ error: 'Texto vazio' });
-
-        const FISH_API_KEY = process.env.FISH_API_KEY;
-        const FISH_VOICE_ID = process.env.FISH_VOICE_ID;
-
-        if (!FISH_API_KEY || !FISH_VOICE_ID) {
-            console.error('❌ Faltando FISH_API_KEY ou FISH_VOICE_ID nas variáveis de ambiente.');
-            return res.status(500).json({ error: 'Servidor sem as chaves do Fish Audio.' });
-        }
-
-        console.log('🎤 Gerando áudio no Fish Audio para:', text);
-
-        const response = await axios.post(
-            'https://api.fish.audio/v1/tts',
-            {
-                text: text,
-                reference_id: FISH_VOICE_ID,
-                format: 'mp3',
-                mp3_bitrate: 128,
-                latency: 'balanced',
-                normalize: true
-            },
-            {
-                headers: {
-                    'Authorization': `Bearer ${FISH_API_KEY}`,
-                    'Content-Type': 'application/json',
-                    'model': 's2.1-pro'
-                },
-                responseType: 'arraybuffer',
-                timeout: 60000
-            }
-        );
-
-        const audioBase64 = Buffer.from(response.data).toString('base64');
-        console.log('✅ Áudio gerado com sua voz clonada!');
-        res.json({ audioContent: audioBase64 });
-
-    } catch (error) {
-        // O erro do Fish vem como buffer, então convertemos para ler a mensagem real
-        let detalhe = error.message;
-        if (error.response && error.response.data) {
-            try { detalhe = Buffer.from(error.response.data).toString('utf8'); } catch (e) {}
-        }
-        console.error('❌ ERRO NO FISH AUDIO:', error.response ? error.response.status : '', detalhe);
-        res.status(500).json({ error: 'Erro ao gerar áudio.' });
-    }
-});
-
-// ==========================================
 // ROTA DO CHAT (GEMINI)
+// A voz agora é gerada no navegador (Web Speech API),
+// então não existe mais rota /api/tts no servidor.
 // ==========================================
 app.post('/api/chat', async (req, res) => {
     try {
