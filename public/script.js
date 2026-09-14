@@ -108,7 +108,8 @@ async function startCall() {
     circle.classList.add('active');
     console.log("Ligação iniciada...");
     await requestWakeLock(); 
-    playAudioResponse("Olá, eu sou a nova.IA. Como posso ajudar?");
+    // 🌟 SUA NOVA SAUDAÇÃO AQUI:
+    playAudioResponse("Olá, tudo bem? Eu sou a nova, inteligência artificial, treinamentos básicos, criada e programada por Anderson.");
 }
 
 function endCall() {
