@@ -18,7 +18,6 @@ app.post('/api/chat', async (req, res) => {
         const { message } = req.body;
         if (!message) return res.status(400).json({ error: 'Mensagem vazia' });
 
-        // Usando o modelo mais recente
         const model = genAI.getGenerativeModel({ 
             model: "gemini-2.5-flash",
             systemInstruction: "Você é a nova.IA, uma inteligência artificial criada por Anderson. Você está em uma ligação telefônica. Responda de forma natural, rápida, educada e concisa, como se estivesse conversando por voz. Não use emojis ou formatação markdown."
