@@ -2,9 +2,50 @@ let recognition = null;
 let isCalling = false;
 let isSpeaking = false;
 let isListening = false;
+let wakeLock = null; // Nova variável para manter a tela ligada
 
 const circle = document.getElementById('circle');
 
+// ==========================================
+// FUNÇÕES PARA MANTER A TELA LIGADA (WAKE LOCK)
+// ==========================================
+async function requestWakeLock() {
+    if ('wakeLock' in navigator) {
+        try {
+            wakeLock = await navigator.wakeLock.request('screen');
+            console.log('✅ Tela mantida ligada durante a ligação.');
+            
+            // Se a tela for desligada ou o app minimizado, o wake lock é liberado
+            wakeLock.addEventListener('release', () => {
+                console.log('⚠️ Wake Lock liberado pelo sistema.');
+                wakeLock = null;
+            });
+        } catch (err) {
+            console.log(`Erro ao manter tela ligada: ${err.message}`);
+        }
+    } else {
+        console.log('Seu navegador não suporta a API de manter tela ligada.');
+    }
+}
+
+function releaseWakeLock() {
+    if (wakeLock !== null) {
+        wakeLock.release();
+        wakeLock = null;
+        console.log('💤 Tela pode apagar novamente.');
+    }
+}
+
+// Reativa a tela ligada se o usuário voltar para a aba durante a ligação
+document.addEventListener('visibilitychange', async () => {
+    if (document.visibilityState === 'visible' && isCalling) {
+        await requestWakeLock();
+    }
+});
+
+// ==========================================
+// CONFIGURAÇÃO DO MICROFONE
+// ==========================================
 if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     recognition = new SpeechRecognition();
@@ -41,11 +82,18 @@ function stopListening() {
     }
 }
 
+// ==========================================
+// FUNÇÕES PRINCIPAIS DA LIGAÇÃO
+// ==========================================
 async function startCall() {
     if (isCalling) return;
     isCalling = true;
     circle.classList.add('active');
     console.log("Ligação iniciada...");
+    
+    // 🔥 Ativa a tela ligada ao iniciar a chamada
+    await requestWakeLock(); 
+    
     playAudioResponse("Olá, eu sou a nova.IA. Como posso ajudar?");
 }
 
@@ -54,6 +102,11 @@ function endCall() {
     isSpeaking = false;
     isListening = false;
     circle.classList.remove('active');
+    console.log("Ligação encerrada.");
+    
+    // 🔥 Libera a tela para apagar ao encerrar a chamada
+    releaseWakeLock();
+    
     if (recognition) { try { recognition.stop(); } catch(e){} }
     window.speechSynthesis.cancel();
 }
