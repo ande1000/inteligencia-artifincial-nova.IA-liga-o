@@ -153,7 +153,7 @@ async function sendToAI(message) {
 }
 
 // ==========================================
-// FUNÇÃO DE ÁUDIO ATUALIZADA (Buscando do Servidor)
+// FUNÇÃO DE ÁUDIO (BUSCANDO DO SERVIDOR gTTS)
 // ==========================================
 async function playAudioResponse(text) {
     if (!text) return;
