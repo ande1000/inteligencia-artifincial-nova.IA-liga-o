@@ -4,9 +4,14 @@ let isSpeaking = false;
 let isListening = false;
 let wakeLock = null;
 
+// Elementos da Tela 1 (Chat)
+const homeScreen = document.getElementById('home-screen');
+const callScreen = document.getElementById('call-screen');
+const chatMessages = document.getElementById('chat-messages');
+const textInput = document.getElementById('text-input');
+
+// Elementos da Tela 2 (Chamada)
 const circle = document.getElementById('circle');
-const callBtn = document.getElementById('call-btn');
-const offBtn = document.getElementById('off-btn');
 
 // ==========================================
 // ⚙️ PERSONALIZAÇÃO: RESPOSTAS PROGRAMADAS
@@ -36,7 +41,80 @@ const respostasPersonalizadas = {
 };
 
 // ==========================================
-// FUNÇÕES PARA MANTER A TELA LIGADA (WAKE LOCK)
+// FUNÇÕES DE TROCA DE TELA
+// ==========================================
+function switchScreen(screen) {
+    if (screen === 'home') {
+        homeScreen.classList.remove('hidden');
+        callScreen.classList.add('hidden');
+    } else {
+        homeScreen.classList.add('hidden');
+        callScreen.classList.remove('hidden');
+    }
+}
+
+// ==========================================
+// TELA 1: CHAT DE TEXTO
+// ==========================================
+function handleKeyPress(event) {
+    if (event.key === 'Enter') {
+        sendTextMessage();
+    }
+}
+
+async function sendTextMessage() {
+    const message = textInput.value.trim();
+    if (!message) return;
+
+    // Adiciona a mensagem do usuário na tela
+    addMessageToChat(message, 'user');
+    textInput.value = '';
+
+    // Verifica palavras-chave personalizadas primeiro
+    const msgLower = message.toLowerCase();
+    for (const [palavraChave, resposta] of Object.entries(respostasPersonalizadas)) {
+        if (msgLower.includes(palavraChave)) {
+            setTimeout(() => addMessageToChat(resposta, 'ai'), 500);
+            return;
+        }
+    }
+
+    // Se não achou palavra-chave, envia para o Gemini
+    try {
+        addMessageToChat("Pensando...", 'ai', true); // Mensagem temporária
+        const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message })
+        });
+        
+        // Remove a mensagem temporária
+        const tempMsg = document.querySelector('.temp-msg');
+        if (tempMsg) tempMsg.remove();
+
+        if (!response.ok) throw new Error('Erro no servidor');
+        const data = await response.json();
+        
+        addMessageToChat(data.text, 'ai');
+    } catch (error) {
+        console.error("Erro no chat de texto:", error);
+        const tempMsg = document.querySelector('.temp-msg');
+        if (tempMsg) tempMsg.remove();
+        addMessageToChat("Desculpe, tive um problema no servidor.", 'ai');
+    }
+}
+
+function addMessageToChat(text, sender, isTemp = false) {
+    const msgDiv = document.createElement('div');
+    msgDiv.classList.add('message', sender === 'user' ? 'user-message' : 'ai-message');
+    if (isTemp) msgDiv.classList.add('temp-msg');
+    msgDiv.textContent = text;
+    chatMessages.appendChild(msgDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight; // Rola para baixo
+}
+
+// ==========================================
+// TELA 2: CHAMADA DE VOZ
 // ==========================================
 async function requestWakeLock() {
     if ('wakeLock' in navigator) {
@@ -64,9 +142,7 @@ document.addEventListener('visibilitychange', async () => {
     }
 });
 
-// ==========================================
-// CONFIGURAÇÃO DO MICROFONE
-// ==========================================
+// Configuração do Microfone
 if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     recognition = new SpeechRecognition();
@@ -83,7 +159,7 @@ if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
         const userMessage = event.results[0][0].transcript;
         if (!userMessage.trim()) return;
         stopListening();
-        await sendToAI(userMessage);
+        await sendVoiceToAI(userMessage);
     };
     
     recognition.onerror = (event) => { 
@@ -114,16 +190,12 @@ function stopListening() {
     }
 }
 
-// ==========================================
-// FUNÇÕES PRINCIPAIS DA LIGAÇÃO
-// ==========================================
 async function startCall() {
     if (isCalling) return;
     isCalling = true;
     
-    // Troca os botões: Esconde o Vermelho, Mostra o Verde
-    callBtn.classList.add('hidden');
-    offBtn.classList.remove('hidden');
+    // Troca para a tela de chamada
+    switchScreen('call');
     
     circle.classList.add('active'); 
     console.log("Ligação iniciada...");
@@ -134,7 +206,7 @@ async function startCall() {
     
     setTimeout(() => {
         playAudioResponse("Olá, tudo bem? Eu sou a nova, inteligência artificial, treinamentos básicos, criada e programada por Anderson.");
-    }, 1500); // Espera 1.5 segundos para o som de discagem
+    }, 1500);
 }
 
 function endCall() {
@@ -145,18 +217,17 @@ function endCall() {
     console.log("Ligação encerrada.");
     releaseWakeLock();
     
-    // Troca os botões: Esconde o Verde, Mostra o Vermelho
-    offBtn.classList.add('hidden');
-    callBtn.classList.remove('hidden');
+    // Troca de volta para a tela inicial (Chat)
+    switchScreen('home');
     
     if (recognition) { try { recognition.stop(); } catch(e){} }
     window.speechSynthesis.cancel();
 }
 
 // ==========================================
-// 🌟 AQUI ACONTECE A MÁGICA DAS PALAVRAS-CHAVE
+// LÓGICA DE VOZ E PALAVRAS-CHAVE
 // ==========================================
-async function sendToAI(message) {
+async function sendVoiceToAI(message) {
     const msgLower = message.toLowerCase();
 
     for (const [palavraChave, resposta] of Object.entries(respostasPersonalizadas)) {
@@ -183,9 +254,6 @@ async function sendToAI(message) {
     }
 }
 
-// ==========================================
-// FUNÇÃO DE ÁUDIO (VOZ DO NAVEGADOR)
-// ==========================================
 function playAudioResponse(text) {
     if (!text) return;
     
@@ -196,7 +264,7 @@ function playAudioResponse(text) {
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'pt-BR';
     utterance.rate = 1.0; 
-    utterance.pitch = 1.2; // Voz mais aguda (feminina). Mude para 1.0 se quiser masculina.
+    utterance.pitch = 1.2; // Voz feminina
 
     utterance.onend = () => {
         isSpeaking = false;
@@ -207,9 +275,6 @@ function playAudioResponse(text) {
     window.speechSynthesis.speak(utterance);
 }
 
-// ==========================================
-// SOM DE DISCAGEM (NOTIFICAÇÃO)
-// ==========================================
 function playDialTone() {
     try {
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
