@@ -108,7 +108,7 @@ async function startCall() {
     circle.classList.add('active');
     console.log("Ligação iniciada...");
     await requestWakeLock(); 
-    // 🌟 SUA NOVA SAUDAÇÃO AQUI:
+    // 🌟 SUA SAUDAÇÃO PERSONALIZADA:
     playAudioResponse("Olá, tudo bem? Eu sou a nova, inteligência artificial, treinamentos básicos, criada e programada por Anderson.");
 }
 
@@ -154,38 +154,24 @@ async function sendToAI(message) {
 }
 
 // ==========================================
-// FUNÇÃO DE ÁUDIO (BUSCANDO DO SERVIDOR gTTS)
+// FUNÇÃO DE ÁUDIO (VOZ DO NAVEGADOR - SEM SERVIDOR)
 // ==========================================
-async function playAudioResponse(text) {
+function playAudioResponse(text) {
     if (!text) return;
     
     isSpeaking = true;
     stopListening();
 
-    try {
-        const response = await fetch('/api/tts', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: text })
-        });
+    // Usa a voz nativa do navegador (Google Chrome, Edge, etc.)
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'pt-BR';
+    utterance.rate = 1.0; 
+    utterance.pitch = 1.0; 
 
-        if (!response.ok) throw new Error('Falha ao gerar áudio no servidor');
-
-        const data = await response.json();
-        const audioBase64 = data.audioContent;
-        
-        const audio = new Audio(`data:audio/mp3;base64,${audioBase64}`);
-        
-        audio.onended = () => {
-            isSpeaking = false;
-            if (isCalling) startListening();
-        };
-        
-        await audio.play();
-
-    } catch (error) {
-        console.error("Erro ao gerar ou reproduzir áudio:", error);
+    utterance.onend = () => {
         isSpeaking = false;
         if (isCalling) startListening();
-    }
+    };
+
+    window.speechSynthesis.speak(utterance);
 }
