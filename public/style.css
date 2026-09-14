@@ -12,8 +12,8 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: space-between;
-    height: 100dvh; /* Melhor para celulares */
-    padding: 40px 20px 100px 20px; /* Aumenta o espaço embaixo para subir os botões */
+    height: 100dvh;
+    padding: 40px 20px 100px 20px;
     overflow: hidden;
 }
 
@@ -40,25 +40,33 @@ main {
     justify-content: center;
     align-items: center;
     flex-grow: 1;
-    padding-bottom: 120px; /* Empurra a bola roxa para cima */
+    padding-bottom: 120px;
     width: 100%;
 }
 
 .circle {
     width: 250px;
     height: 250px;
-    background-color: #9B30FF; /* Roxo */
+    background-color: #9B30FF; /* Roxo (Padrão) */
     border-radius: 50%;
     transition: all 0.3s ease;
 }
 
-.circle.active {
-    animation: pulse 1.5s infinite alternate;
+/* 🔥 NOVAS CORES DO CÍRCULO */
+.circle.listening {
+    background-color: #00FF00; /* Verde quando ouve você */
+    box-shadow: 0 0 40px #00FF00;
+}
+
+.circle.speaking {
+    background-color: #FF0000; /* Vermelho quando a IA fala */
+    box-shadow: 0 0 40px #FF0000;
+    animation: pulse 0.8s infinite alternate;
 }
 
 @keyframes pulse {
-    0% { transform: scale(1); box-shadow: 0 0 20px #9B30FF; }
-    100% { transform: scale(1.1); box-shadow: 0 0 60px #9B30FF; }
+    0% { transform: scale(1); }
+    100% { transform: scale(1.1); }
 }
 
 footer {
@@ -94,14 +102,6 @@ button::before {
     display: block;
 }
 
-.btn-green::before {
-    background-color: #00FF00;
-}
-
-.btn-red::before {
-    background-color: #FF0000;
-}
-
-button:active::before {
-    transform: scale(0.9);
-}
+.btn-green::before { background-color: #00FF00; }
+.btn-red::before { background-color: #FF0000; }
+button:active::before { transform: scale(0.9); }
