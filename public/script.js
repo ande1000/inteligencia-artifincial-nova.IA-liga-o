@@ -5,7 +5,7 @@ let isListening = false;
 let wakeLock = null;
 let currentPersonality = 'normal';
 let hasGreeted = false;
-let selectedVoice = null; // 🌟 Guarda a voz escolhida
+let selectedVoice = null;
 
 // Elementos da Tela 1 (Chat)
 const homeScreen = document.getElementById('home-screen');
@@ -23,60 +23,45 @@ const circle = document.getElementById('circle');
 // ==========================================
 function loadVoices() {
     const voices = window.speechSynthesis.getVoices();
-    
-    // Filtra apenas vozes em Português (Brasil ou Portugal)
     const ptVoices = voices.filter(v => v.lang.includes('pt'));
     
-    // Limpa as opções atuais
     voiceSelect.innerHTML = '';
     voiceSelectCall.innerHTML = '';
 
-    if (ptVoices.length === 0) {
-        // Se não achar vozes em português, adiciona todas
-        voices.forEach((voice, index) => {
-            const option = document.createElement('option');
-            option.value = index;
-            option.textContent = `${voice.name} (${voice.lang})`;
-            voiceSelect.appendChild(option.cloneNode(true));
-            voiceSelectCall.appendChild(option);
-        });
-    } else {
-        ptVoices.forEach((voice, index) => {
-            const option = document.createElement('option');
-            option.value = index;
-            // Deixa o nome mais limpo
-            option.textContent = `${voice.name.replace('Microsoft', '').replace('Google', '').trim()} (${voice.lang})`;
-            voiceSelect.appendChild(option.cloneNode(true));
-            voiceSelectCall.appendChild(option);
-        });
-    }
+    const voiceList = ptVoices.length > 0 ? ptVoices : voices;
 
-    // Seleciona a primeira voz por padrão
+    voiceList.forEach((voice, index) => {
+        const option = document.createElement('option');
+        option.value = index;
+        option.textContent = `${voice.name.replace('Microsoft', '').replace('Google', '').trim()} (${voice.lang})`;
+        voiceSelect.appendChild(option.cloneNode(true));
+        voiceSelectCall.appendChild(option);
+    });
+
     if (voiceSelect.options.length > 0) {
         voiceSelect.selectedIndex = 0;
         voiceSelectCall.selectedIndex = 0;
-        selectedVoice = ptVoices.length > 0 ? ptVoices[0] : voices[0];
+        selectedVoice = voiceList[0];
     }
 }
 
-// Carrega as vozes quando a página abre
 window.speechSynthesis.onvoiceschanged = loadVoices;
-loadVoices(); // Tenta carregar imediatamente também
+loadVoices();
 
-// Quando o usuário troca a voz na tela inicial
 voiceSelect.addEventListener('change', () => {
-    const voices = window.speechSynthesis.getVoices().filter(v => v.lang.includes('pt'));
-    const allVoices = voices.length > 0 ? voices : window.speechSynthesis.getVoices();
-    selectedVoice = allVoices[voiceSelect.value];
-    voiceSelectCall.value = voiceSelect.value; // Sincroniza com o da tela de chamada
+    const voices = window.speechSynthesis.getVoices();
+    const ptVoices = voices.filter(v => v.lang.includes('pt'));
+    const voiceList = ptVoices.length > 0 ? ptVoices : voices;
+    selectedVoice = voiceList[voiceSelect.value];
+    voiceSelectCall.value = voiceSelect.value;
 });
 
-// Quando o usuário troca a voz na tela de chamada
 voiceSelectCall.addEventListener('change', () => {
-    const voices = window.speechSynthesis.getVoices().filter(v => v.lang.includes('pt'));
-    const allVoices = voices.length > 0 ? voices : window.speechSynthesis.getVoices();
-    selectedVoice = allVoices[voiceSelectCall.value];
-    voiceSelect.value = voiceSelectCall.value; // Sincroniza com o da tela inicial
+    const voices = window.speechSynthesis.getVoices();
+    const ptVoices = voices.filter(v => v.lang.includes('pt'));
+    const voiceList = ptVoices.length > 0 ? ptVoices : voices;
+    selectedVoice = voiceList[voiceSelectCall.value];
+    voiceSelect.value = voiceSelectCall.value;
 });
 
 // ==========================================
@@ -191,12 +176,32 @@ async function sendTextMessage() {
     }
 }
 
+// ==========================================
+// 🌟 FUNÇÃO DE MENSAGEM ATUALIZADA (COM AVATAR)
+// ==========================================
 function addMessageToChat(text, sender, isTemp = false) {
+    // Cria a linha da mensagem
+    const rowDiv = document.createElement('div');
+    rowDiv.classList.add('message-row', sender === 'user' ? 'user' : 'ai');
+
+    // Se for da IA, adiciona o avatar
+    if (sender === 'ai') {
+        const avatarDiv = document.createElement('div');
+        avatarDiv.classList.add('avatar');
+        avatarDiv.textContent = '✨';
+        rowDiv.appendChild(avatarDiv);
+    }
+
+    // Cria o balão de texto
     const msgDiv = document.createElement('div');
     msgDiv.classList.add('message', sender === 'user' ? 'user-message' : 'ai-message');
     if (isTemp) msgDiv.classList.add('temp-msg');
     msgDiv.textContent = text;
-    chatMessages.appendChild(msgDiv);
+    
+    rowDiv.appendChild(msgDiv);
+
+    // Adiciona a linha completa no chat
+    chatMessages.appendChild(rowDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
@@ -356,20 +361,17 @@ function playAudioResponse(text) {
     stopListening();
     circle.classList.add('speaking'); 
 
-    // 🔔 Toca o som de notificação ANTES de falar
     playNotificationSound();
 
-    // Pequeno atraso para o som de notificação tocar antes da voz
     setTimeout(() => {
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'pt-BR';
         utterance.rate = 1.0; 
         
-        // 🌟 USA A VOZ SELECIONADA PELO USUÁRIO
         if (selectedVoice) {
             utterance.voice = selectedVoice;
         } else {
-            utterance.pitch = 1.2; // Fallback (voz feminina padrão)
+            utterance.pitch = 1.2;
         }
 
         utterance.onend = () => {
@@ -379,19 +381,17 @@ function playAudioResponse(text) {
         };
 
         window.speechSynthesis.speak(utterance);
-    }, 400); // 400ms de atraso para o sino tocar
+    }, 400);
 }
 
-// 🔔 SOM DE NOTIFICAÇÃO (Tipo "Plim!")
 function playNotificationSound() {
     try {
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         
-        // Primeiro tom (mais agudo)
         const osc1 = audioCtx.createOscillator();
         const gain1 = audioCtx.createGain();
         osc1.type = 'sine';
-        osc1.frequency.setValueAtTime(880, audioCtx.currentTime); // Nota Lá
+        osc1.frequency.setValueAtTime(880, audioCtx.currentTime);
         gain1.gain.setValueAtTime(0.15, audioCtx.currentTime);
         gain1.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
         osc1.connect(gain1);
@@ -399,12 +399,11 @@ function playNotificationSound() {
         osc1.start();
         osc1.stop(audioCtx.currentTime + 0.3);
 
-        // Segundo tom (mais grave, logo depois)
         setTimeout(() => {
             const osc2 = audioCtx.createOscillator();
             const gain2 = audioCtx.createGain();
             osc2.type = 'sine';
-            osc2.frequency.setValueAtTime(660, audioCtx.currentTime); // Nota Mi
+            osc2.frequency.setValueAtTime(660, audioCtx.currentTime);
             gain2.gain.setValueAtTime(0.15, audioCtx.currentTime);
             gain2.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
             osc2.connect(gain2);
@@ -418,7 +417,6 @@ function playNotificationSound() {
     }
 }
 
-// Som de discagem (trim)
 function playDialTone() {
     try {
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
