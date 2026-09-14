@@ -5,6 +5,8 @@ let isListening = false;
 let wakeLock = null;
 let currentPersonality = 'normal';
 let hasGreeted = false;
+let vozesDisponiveis = [];
+let vozEscolhida = null;
 
 // Elementos da Tela 1 (Chat)
 const homeScreen = document.getElementById('home-screen');
@@ -14,6 +16,62 @@ const textInput = document.getElementById('text-input');
 
 // Elementos da Tela 2 (Chamada)
 const circle = document.getElementById('circle');
+
+// Seletores de voz
+const voiceSelectHome = document.getElementById('voice-select');
+const voiceSelectCall = document.getElementById('voice-select-call');
+
+// ==========================================
+// 🌟 CARREGAR VOZES DO NAVEGADOR
+// ==========================================
+function carregarVozes() {
+    vozesDisponiveis = window.speechSynthesis.getVoices();
+    if (!vozesDisponiveis.length) return;
+
+    // Prioriza vozes em português
+    const vozesOrdenadas = [...vozesDisponiveis].sort((a, b) => {
+        const aPt = a.lang.toLowerCase().startsWith('pt') ? 0 : 1;
+        const bPt = b.lang.toLowerCase().startsWith('pt') ? 0 : 1;
+        return aPt - bPt;
+    });
+
+    [voiceSelectHome, voiceSelectCall].forEach(select => {
+        if (!select) return;
+        select.innerHTML = '';
+        vozesOrdenadas.forEach((voz, index) => {
+            const option = document.createElement('option');
+            option.value = voz.name;
+            option.textContent = `${voz.name} (${voz.lang})`;
+            select.appendChild(option);
+        });
+    });
+
+    // Escolhe a primeira voz em pt-BR como padrão, se existir
+    const padrao = vozesOrdenadas.find(v => v.lang.toLowerCase().includes('pt-br')) || vozesOrdenadas[0];
+    if (padrao) {
+        vozEscolhida = padrao.name;
+        if (voiceSelectHome) voiceSelectHome.value = padrao.name;
+        if (voiceSelectCall) voiceSelectCall.value = padrao.name;
+    }
+}
+
+function sincronizarVoz(nomeVoz) {
+    vozEscolhida = nomeVoz;
+    if (voiceSelectHome) voiceSelectHome.value = nomeVoz;
+    if (voiceSelectCall) voiceSelectCall.value = nomeVoz;
+}
+
+if (voiceSelectHome) {
+    voiceSelectHome.addEventListener('change', (e) => sincronizarVoz(e.target.value));
+}
+if (voiceSelectCall) {
+    voiceSelectCall.addEventListener('change', (e) => sincronizarVoz(e.target.value));
+}
+
+if ('speechSynthesis' in window) {
+    window.speechSynthesis.onvoiceschanged = carregarVozes;
+    carregarVozes();
+}
 
 // ==========================================
 // ⚙️ PERSONALIZAÇÃO: RESPOSTAS PROGRAMADAS
@@ -303,48 +361,48 @@ async function sendVoiceToAI(message) {
 }
 
 // ==========================================
-// 🌟 FUNÇÃO DE ÁUDIO (BUSCANDO DO SERVIDOR FISH AUDIO)
+// 🌟 FUNÇÃO DE ÁUDIO (VOZ NATIVA DO NAVEGADOR)
 // ==========================================
-async function playAudioResponse(text) {
+function playAudioResponse(text) {
     if (!text) return;
-    
+
+    if (!('speechSynthesis' in window)) {
+        console.error('Este navegador não suporta síntese de voz.');
+        if (isCalling) startListening();
+        return;
+    }
+
     isSpeaking = true;
     stopListening();
-    circle.classList.add('speaking'); 
+    circle.classList.add('speaking');
 
     playNotificationSound();
 
-    try {
-        // Pede o áudio para o nosso servidor (que chama o Fish Audio)
-        const response = await fetch('/api/tts', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: text })
-        });
+    // Cancela qualquer fala pendente antes de começar uma nova
+    window.speechSynthesis.cancel();
 
-        if (!response.ok) throw new Error('Falha ao gerar áudio no servidor');
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'pt-BR';
+    utterance.rate = 1;
+    utterance.pitch = 1;
 
-        const data = await response.json();
-        const audioBase64 = data.audioContent;
-        
-        // Toca o áudio que veio do servidor
-        const audio = new Audio(`data:audio/mp3;base64,${audioBase64}`);
-        
-        audio.onended = () => {
-            isSpeaking = false;
-            circle.classList.remove('speaking'); 
-            if (isCalling) startListening();
-        };
-        
-        await audio.play();
+    const voz = vozesDisponiveis.find(v => v.name === vozEscolhida);
+    if (voz) utterance.voice = voz;
 
-    } catch (error) {
-        console.error("Erro ao gerar ou reproduzir áudio:", error);
+    utterance.onend = () => {
         isSpeaking = false;
         circle.classList.remove('speaking');
-        // Fallback: se falhar, tenta ouvir novamente para não travar a ligação
         if (isCalling) startListening();
-    }
+    };
+
+    utterance.onerror = (event) => {
+        console.error('Erro na síntese de voz:', event.error);
+        isSpeaking = false;
+        circle.classList.remove('speaking');
+        if (isCalling) startListening();
+    };
+
+    window.speechSynthesis.speak(utterance);
 }
 
 // 🔔 SOM DE NOTIFICAÇÃO
