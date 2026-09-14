@@ -7,23 +7,56 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <header>
-        <h1>nova.IA</h1>
-        <p>ANDERSON O CRIADOR DA INTELIGENCIA ARTIFICIAL</p>
-    </header>
 
-    <main>
-        <div id="circle" class="circle"></div>
-    </main>
+    <!-- ========================================== -->
+    <!-- TELA 1: CHAT DE TEXTO (TELA INICIAL)       -->
+    <!-- ========================================== -->
+    <div id="home-screen" class="screen">
+        <header>
+            <div class="logo-icon">✨</div>
+            <h1>nova.IA</h1>
+            <p>ANDERSON O CRIADOR DA INTELIGENCIA ARTIFICIAL</p>
+        </header>
 
-    <footer>
-        <div class="btn-container">
-            <!-- Botão vermelho de call (Inicial) -->
-            <button id="call-btn" class="btn-red" onclick="startCall()">call</button>
-            <!-- Botão verde de off (Escondido inicialmente) -->
-            <button id="off-btn" class="btn-green hidden" onclick="endCall()">off</button>
-        </div>
-    </footer>
+        <main class="chat-container">
+            <div id="chat-messages" class="chat-messages">
+                <div class="message ai-message">Olá! Eu sou a nova.IA. Como posso ajudar você hoje?</div>
+            </div>
+        </main>
+
+        <footer class="home-footer">
+            <div class="input-wrapper">
+                <input type="text" id="text-input" placeholder="Digite sua mensagem..." onkeypress="handleKeyPress(event)">
+                <button id="send-btn" onclick="sendTextMessage()">➤</button>
+            </div>
+            <!-- Botão Azul para Ligar -->
+            <button id="call-btn" class="btn-blue" onclick="startCall()">
+                <div class="line"></div>
+                <div class="line"></div>
+                <div class="line"></div>
+            </button>
+        </footer>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- TELA 2: CHAMADA DE VOZ                     -->
+    <!-- ========================================== -->
+    <div id="call-screen" class="screen hidden">
+        <header>
+            <h1>nova.IA</h1>
+            <p>ANDERSON O CRIADOR DA INTELIGENCIA ARTIFICIAL</p>
+        </header>
+
+        <main>
+            <div id="circle" class="circle"></div>
+        </main>
+
+        <footer>
+            <div class="btn-container">
+                <button id="off-btn" class="btn-green" onclick="endCall()">off</button>
+            </div>
+        </footer>
+    </div>
 
     <script src="script.js"></script>
 </body>
