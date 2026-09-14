@@ -5,7 +5,6 @@ let isListening = false;
 
 const circle = document.getElementById('circle');
 
-// Configura o microfone com segurança
 if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     recognition = new SpeechRecognition();
@@ -77,10 +76,7 @@ async function sendToAI(message) {
 }
 
 function playAudioResponse(text) {
-    if (!('speechSynthesis' in window)) {
-        console.error("Navegador não suporta fala.");
-        return;
-    }
+    if (!('speechSynthesis' in window)) return;
     isSpeaking = true;
     stopListening();
     
