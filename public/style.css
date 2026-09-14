@@ -8,34 +8,199 @@
 body {
     background-color: #000;
     color: #fff;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: space-between;
     height: 100dvh;
-    padding: 40px 20px 100px 20px;
     overflow: hidden;
 }
 
-header {
+/* Controle de Telas */
+.screen {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    width: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    transition: opacity 0.3s ease;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* ==========================================
+   TELA 1: CHAT DE TEXTO
+   ========================================== */
+#home-screen {
+    justify-content: space-between;
+    padding: 20px;
+}
+
+#home-screen header {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.logo-icon {
+    font-size: 3rem;
+    color: #FFD700;
+    margin-bottom: 10px;
+    animation: spin 4s linear infinite;
+}
+
+@keyframes spin {
+    100% { transform: rotate(360deg); }
+}
+
+#home-screen h1 {
+    color: #00FF00;
+    font-size: 2.5rem;
+    font-weight: bold;
+}
+
+#home-screen p {
+    color: #FFF;
+    font-size: 0.8rem;
+    font-weight: bold;
+    letter-spacing: 1px;
+    margin-top: 5px;
+}
+
+.chat-container {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.chat-messages {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.message {
+    max-width: 80%;
+    padding: 12px 16px;
+    border-radius: 20px;
+    font-size: 1rem;
+    line-height: 1.4;
+    word-wrap: break-word;
+}
+
+.ai-message {
+    background-color: #333;
+    color: #FFF;
+    align-self: flex-start;
+    border-bottom-left-radius: 5px;
+}
+
+.user-message {
+    background-color: #007bff;
+    color: #FFF;
+    align-self: flex-end;
+    border-bottom-right-radius: 5px;
+}
+
+/* Rodapé da Tela de Chat */
+.home-footer {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding-bottom: 10px;
+}
+
+.input-wrapper {
+    flex-grow: 1;
+    display: flex;
+    background-color: #222;
+    border-radius: 30px;
+    padding: 5px 10px;
+    border: 1px solid #444;
+}
+
+#text-input {
+    flex-grow: 1;
+    background: none;
+    border: none;
+    color: #FFF;
+    font-size: 1rem;
+    padding: 10px;
+    outline: none;
+}
+
+#send-btn {
+    background: none;
+    border: none;
+    color: #007bff;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0 10px;
+}
+
+#send-btn:active {
+    transform: scale(0.9);
+}
+
+/* Botão Azul (Ligar) */
+.btn-blue {
+    background-color: #4A90E2;
+    border: none;
+    width: 55px;
+    height: 55px;
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    box-shadow: 0 0 15px rgba(74, 144, 226, 0.5);
+    transition: all 0.2s;
+}
+
+.btn-blue .line {
+    width: 22px;
+    height: 3px;
+    background-color: #FFF;
+    border-radius: 2px;
+}
+
+.btn-blue:active {
+    transform: scale(0.9);
+    box-shadow: 0 0 25px rgba(74, 144, 226, 0.8);
+}
+
+/* ==========================================
+   TELA 2: CHAMADA DE VOZ
+   ========================================== */
+#call-screen {
+    align-items: center;
+    justify-content: space-between;
+    padding: 40px 20px 100px 20px;
+}
+
+#call-screen header {
     text-align: center;
 }
 
-header h1 {
+#call-screen h1 {
     color: #00FF00;
     font-size: 3rem;
     font-weight: bold;
     margin-bottom: 10px;
 }
 
-header p {
+#call-screen p {
     color: #FFF;
     font-size: 0.9rem;
     font-weight: bold;
     letter-spacing: 1px;
 }
 
-main {
+#call-screen main {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -52,7 +217,6 @@ main {
     transition: all 0.3s ease;
 }
 
-/* Cores do Círculo */
 .circle.listening {
     background-color: #00FF00;
     box-shadow: 0 0 40px #00FF00;
@@ -69,11 +233,10 @@ main {
     100% { transform: scale(1.1); }
 }
 
-footer {
+#call-screen footer {
     width: 100%;
     display: flex;
     justify-content: center;
-    align-items: center;
 }
 
 .btn-container {
@@ -82,11 +245,10 @@ footer {
     width: 100%;
 }
 
-/* Estilo dos Botões (Circulares) */
-button {
-    background: none;
+.btn-green {
+    background-color: #00FF00;
+    color: #000;
     border: none;
-    color: #FFF;
     font-weight: bold;
     font-size: 1.5rem;
     cursor: pointer;
@@ -96,26 +258,11 @@ button {
     display: flex;
     justify-content: center;
     align-items: center;
-    transition: all 0.3s ease;
     text-transform: lowercase;
-}
-
-.btn-red {
-    background-color: #FF0000;
-    box-shadow: 0 0 20px #FF0000;
-}
-
-.btn-green {
-    background-color: #00FF00;
-    color: #000;
     box-shadow: 0 0 20px #00FF00;
+    transition: all 0.3s ease;
 }
 
-/* Classe para esconder o botão */
-.hidden {
-    display: none !important;
-}
-
-button:active {
+.btn-green:active {
     transform: scale(0.9);
 }
