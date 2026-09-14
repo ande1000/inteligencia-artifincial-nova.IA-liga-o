@@ -16,15 +16,25 @@ const respostasPersonalizadas = {
     "seu contato": "anota ai, ddd 77 e numero 91,13,05,08 ,me manda uma mensagem no zap!",
     "sim": "ok anderson, mas alguma coisa!",
     "nova ia": "oi sou uma ia !",     
-    "qual é a sua cor favorita": "Minha cor favorita é roxo, a cor do meu círculo brilhante!",
-    "conte uma piada": "O que o pato disse para a pata? Vem quá! Ha ha ha!",
+    "qual é a sua cor favorita": "Minha cor favorita é roxo, mas eu mudo de cor quando estou falando!",
     "bom dia": "Bom dia! Como posso ajudar você hoje?",
     "boa noite": "Boa noite! Vá dormir bem, estou aqui se precisar.",
     "tudo bem": "Tudo ótimo! Pronta para ajudar no que você precisar.",
     "o que você faz": "Eu sou uma inteligência artificial de ligação. Posso responder perguntas, contar piadas e conversar com você.",
     "modo hacker": "Acesso concedido. Bem-vindo ao sistema, Anderson!",
     "tchau": "Até logo, Anderson! Foi um prazer falar com você.",
-    "desligar": "Não posso desligar a ligação, apenas você pode fazer isso apertando o botão vermelho!"
+    "desligar": "Não posso desligar a ligação, apenas você pode fazer isso apertando o botão vermelho!",
+    
+    // ==========================================
+    // 🤣 MODO ZOEIRA (NOVAS PALAVRAS-CHAVE)
+    // ==========================================
+    "conte uma piada": "O que o pato disse para a pata? Vem quá! Ha ha ha!",
+    "alo": "Alô, é do além? Hahaha! Brincadeira, fala logo o que você quer!",
+    "bom dia é o escambau": "Bom dia é o escambau, hoje é dia de trabalhar!",
+    "já vai": "Já vai? Nem me contou da sua vida ainda!",
+    "canta uma música": "Lá lá lá... brilha brilha estrelinha, quem me dera ter um dinheirinho!",
+    "quanto é dois mais dois": "É quatro, Anderson! Até eu que sou uma IA sei disso.",
+    "qual é o seu nome": "Meu nome é nova.IA, prazer em conhecer você!"
 };
 
 // ==========================================
@@ -35,9 +45,7 @@ async function requestWakeLock() {
         try {
             wakeLock = await navigator.wakeLock.request('screen');
             console.log('✅ Tela mantida ligada durante a ligação.');
-            wakeLock.addEventListener('release', () => {
-                wakeLock = null;
-            });
+            wakeLock.addEventListener('release', () => { wakeLock = null; });
         } catch (err) {
             console.log(`Erro ao manter tela ligada: ${err.message}`);
         }
@@ -68,7 +76,10 @@ if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
     recognition.continuous = false;
     recognition.interimResults = false;
 
-    recognition.onstart = () => { isListening = true; };
+    recognition.onstart = () => { 
+        isListening = true; 
+        circle.classList.add('listening'); // 🔥 Fica Verde
+    };
     
     recognition.onresult = async (event) => {
         const userMessage = event.results[0][0].transcript;
@@ -77,9 +88,14 @@ if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
         await sendToAI(userMessage);
     };
     
-    recognition.onerror = (event) => { isListening = false; };
+    recognition.onerror = (event) => { 
+        isListening = false; 
+        circle.classList.remove('listening'); 
+    };
+    
     recognition.onend = () => {
         isListening = false;
+        circle.classList.remove('listening'); // 🔥 Volta para Roxo
         if (isCalling && !isSpeaking) setTimeout(startListening, 800);
     };
 } else {
@@ -96,6 +112,7 @@ function stopListening() {
     if (recognition && isListening) {
         try { recognition.stop(); } catch (e) {}
         isListening = false;
+        circle.classList.remove('listening');
     }
 }
 
@@ -105,18 +122,23 @@ function stopListening() {
 async function startCall() {
     if (isCalling) return;
     isCalling = true;
-    circle.classList.add('active');
+    circle.classList.add('active'); // Começa a piscar
     console.log("Ligação iniciada...");
     await requestWakeLock(); 
-    // 🌟 SUA SAUDAÇÃO PERSONALIZADA:
-    playAudioResponse("Olá, tudo bem? Eu sou a nova, inteligência artificial, treinamentos básicos, criada e programada por Anderson.");
+    
+    // Toca o som de discagem antes de falar
+    playDialTone();
+    
+    setTimeout(() => {
+        playAudioResponse("Olá, tudo bem? Eu sou a nova, inteligência artificial, treinamentos básicos, criada e programada por Anderson.");
+    }, 1500); // Espera 1.5 segundos para o som de discagem
 }
 
 function endCall() {
     isCalling = false;
     isSpeaking = false;
     isListening = false;
-    circle.classList.remove('active');
+    circle.classList.remove('active', 'listening', 'speaking');
     console.log("Ligação encerrada.");
     releaseWakeLock();
     if (recognition) { try { recognition.stop(); } catch(e){} }
@@ -154,24 +176,48 @@ async function sendToAI(message) {
 }
 
 // ==========================================
-// FUNÇÃO DE ÁUDIO (VOZ DO NAVEGADOR - SEM SERVIDOR)
+// FUNÇÃO DE ÁUDIO (VOZ DO NAVEGADOR)
 // ==========================================
 function playAudioResponse(text) {
     if (!text) return;
     
     isSpeaking = true;
     stopListening();
+    circle.classList.add('speaking'); // 🔥 Fica Vermelho
 
-    // Usa a voz nativa do navegador (Google Chrome, Edge, etc.)
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'pt-BR';
     utterance.rate = 1.0; 
-    utterance.pitch = 1.0; 
+    utterance.pitch = 1.2; // 🔥 Voz mais aguda (feminina). Mude para 1.0 se quiser masculina.
 
     utterance.onend = () => {
         isSpeaking = false;
+        circle.classList.remove('speaking'); // 🔥 Volta para Roxo
         if (isCalling) startListening();
     };
 
     window.speechSynthesis.speak(utterance);
+}
+
+// ==========================================
+// SOM DE DISCAGEM (TRIM TRIM)
+// ==========================================
+function playDialTone() {
+    try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(400, audioCtx.currentTime); // Frequência do som
+        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); // Volume do som
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + 0.2); // Duração de 0.2 segundos
+    } catch (e) {
+        console.log("Navegador não suporta som de discagem.");
+    }
 }
