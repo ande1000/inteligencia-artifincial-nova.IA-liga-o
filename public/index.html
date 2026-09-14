@@ -18,8 +18,10 @@
 
     <footer>
         <div class="btn-container">
-            <button id="btn-ligar" class="btn-green" onclick="startCall()">LIGAR</button>
-            <button id="btn-desligar" class="btn-red" onclick="endCall()">DESLIGAR</button>
+            <!-- Botão vermelho de call (Inicial) -->
+            <button id="call-btn" class="btn-red" onclick="startCall()">call</button>
+            <!-- Botão verde de off (Escondido inicialmente) -->
+            <button id="off-btn" class="btn-green hidden" onclick="endCall()">off</button>
         </div>
     </footer>
 
