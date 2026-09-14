@@ -5,64 +5,15 @@ let isListening = false;
 let wakeLock = null;
 let currentPersonality = 'normal';
 let hasGreeted = false;
-let selectedVoice = null;
 
 // Elementos da Tela 1 (Chat)
 const homeScreen = document.getElementById('home-screen');
 const callScreen = document.getElementById('call-screen');
 const chatMessages = document.getElementById('chat-messages');
 const textInput = document.getElementById('text-input');
-const voiceSelect = document.getElementById('voice-select');
-const voiceSelectCall = document.getElementById('voice-select-call');
 
 // Elementos da Tela 2 (Chamada)
 const circle = document.getElementById('circle');
-
-// ==========================================
-// 🌟 SISTEMA DE VOZES (CARREGAR E SELECIONAR)
-// ==========================================
-function loadVoices() {
-    const voices = window.speechSynthesis.getVoices();
-    const ptVoices = voices.filter(v => v.lang.includes('pt'));
-    
-    voiceSelect.innerHTML = '';
-    voiceSelectCall.innerHTML = '';
-
-    const voiceList = ptVoices.length > 0 ? ptVoices : voices;
-
-    voiceList.forEach((voice, index) => {
-        const option = document.createElement('option');
-        option.value = index;
-        option.textContent = `${voice.name.replace('Microsoft', '').replace('Google', '').trim()} (${voice.lang})`;
-        voiceSelect.appendChild(option.cloneNode(true));
-        voiceSelectCall.appendChild(option);
-    });
-
-    if (voiceSelect.options.length > 0) {
-        voiceSelect.selectedIndex = 0;
-        voiceSelectCall.selectedIndex = 0;
-        selectedVoice = voiceList[0];
-    }
-}
-
-window.speechSynthesis.onvoiceschanged = loadVoices;
-loadVoices();
-
-voiceSelect.addEventListener('change', () => {
-    const voices = window.speechSynthesis.getVoices();
-    const ptVoices = voices.filter(v => v.lang.includes('pt'));
-    const voiceList = ptVoices.length > 0 ? ptVoices : voices;
-    selectedVoice = voiceList[voiceSelect.value];
-    voiceSelectCall.value = voiceSelect.value;
-});
-
-voiceSelectCall.addEventListener('change', () => {
-    const voices = window.speechSynthesis.getVoices();
-    const ptVoices = voices.filter(v => v.lang.includes('pt'));
-    const voiceList = ptVoices.length > 0 ? ptVoices : voices;
-    selectedVoice = voiceList[voiceSelectCall.value];
-    voiceSelect.value = voiceSelectCall.value;
-});
 
 // ==========================================
 // ⚙️ PERSONALIZAÇÃO: RESPOSTAS PROGRAMADAS
@@ -176,15 +127,10 @@ async function sendTextMessage() {
     }
 }
 
-// ==========================================
-// 🌟 FUNÇÃO DE MENSAGEM ATUALIZADA (COM AVATAR)
-// ==========================================
 function addMessageToChat(text, sender, isTemp = false) {
-    // Cria a linha da mensagem
     const rowDiv = document.createElement('div');
     rowDiv.classList.add('message-row', sender === 'user' ? 'user' : 'ai');
 
-    // Se for da IA, adiciona o avatar
     if (sender === 'ai') {
         const avatarDiv = document.createElement('div');
         avatarDiv.classList.add('avatar');
@@ -192,15 +138,12 @@ function addMessageToChat(text, sender, isTemp = false) {
         rowDiv.appendChild(avatarDiv);
     }
 
-    // Cria o balão de texto
     const msgDiv = document.createElement('div');
     msgDiv.classList.add('message', sender === 'user' ? 'user-message' : 'ai-message');
     if (isTemp) msgDiv.classList.add('temp-msg');
     msgDiv.textContent = text;
     
     rowDiv.appendChild(msgDiv);
-
-    // Adiciona a linha completa no chat
     chatMessages.appendChild(rowDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
@@ -352,9 +295,9 @@ async function sendVoiceToAI(message) {
 }
 
 // ==========================================
-// 🌟 FUNÇÃO DE ÁUDIO COM SOM DE NOTIFICAÇÃO
+// 🌟 FUNÇÃO DE ÁUDIO (BUSCANDO DO SERVIDOR FISH AUDIO)
 // ==========================================
-function playAudioResponse(text) {
+async function playAudioResponse(text) {
     if (!text) return;
     
     isSpeaking = true;
@@ -363,27 +306,40 @@ function playAudioResponse(text) {
 
     playNotificationSound();
 
-    setTimeout(() => {
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'pt-BR';
-        utterance.rate = 1.0; 
-        
-        if (selectedVoice) {
-            utterance.voice = selectedVoice;
-        } else {
-            utterance.pitch = 1.2;
-        }
+    try {
+        // Pede o áudio para o nosso servidor (que chama o Fish Audio)
+        const response = await fetch('/api/tts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: text })
+        });
 
-        utterance.onend = () => {
+        if (!response.ok) throw new Error('Falha ao gerar áudio no servidor');
+
+        const data = await response.json();
+        const audioBase64 = data.audioContent;
+        
+        // Toca o áudio que veio do servidor
+        const audio = new Audio(`data:audio/mp3;base64,${audioBase64}`);
+        
+        audio.onended = () => {
             isSpeaking = false;
             circle.classList.remove('speaking'); 
             if (isCalling) startListening();
         };
+        
+        await audio.play();
 
-        window.speechSynthesis.speak(utterance);
-    }, 400);
+    } catch (error) {
+        console.error("Erro ao gerar ou reproduzir áudio:", error);
+        isSpeaking = false;
+        circle.classList.remove('speaking');
+        // Fallback: se falhar, tenta ouvir novamente para não travar a ligação
+        if (isCalling) startListening();
+    }
 }
 
+// 🔔 SOM DE NOTIFICAÇÃO
 function playNotificationSound() {
     try {
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
