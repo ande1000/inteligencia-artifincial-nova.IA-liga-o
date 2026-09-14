@@ -2,9 +2,33 @@ let recognition = null;
 let isCalling = false;
 let isSpeaking = false;
 let isListening = false;
-let wakeLock = null; // Nova variável para manter a tela ligada
+let wakeLock = null;
 
 const circle = document.getElementById('circle');
+
+// ==========================================
+// ⚙️ PERSONALIZAÇÃO: RESPOSTAS PROGRAMADAS
+// ==========================================
+// Adicione aqui as palavras-chave e o que a IA deve responder.
+// Importante: A palavra-chave deve estar em letras minúsculas e sem acentos.
+const respostasPersonalizadas = {
+    "quem é você": "Olá! Eu sou a nova.IA, uma inteligência artificial criada pelo Anderson para conversar com você.",
+    "quem te criou": "Fui criada pelo Anderson, o gênio da tecnologia!",
+    "chave pix": "Claro! Minha chave pix é o telefone 91 13 05 08.",
+    "seu contato": "Anota aí, DDD 77 e número 91 13 05 08. Me manda uma mensagem no zap!",
+    "sim": "Ok, Anderson! Mas fale mais alguma coisa.",
+    "nova ia": "Oi, eu sou a nova.IA!",
+    "qual é a sua cor favorita": "Minha cor favorita é roxo, a cor do meu círculo brilhante!",
+    "conte uma piada": "O que o pato disse para a pata? Vem quá! Ha ha ha!",
+    "bom dia": "Bom dia, Anderson! Como posso ajudar você hoje?",
+    "boa noite": "Boa noite, Anderson! Vá dormir bem, estou aqui se precisar.",
+    // 🔥 NOVAS PALAVRAS-CHAVE ADICIONADAS:
+    "tudo bem": "Tudo ótimo! Pronta para ajudar no que você precisar.",
+    "o que você faz": "Eu sou uma inteligência artificial de ligação. Posso responder perguntas, contar piadas e conversar com você.",
+    "modo hacker": "Acesso concedido. Bem-vindo ao sistema, Anderson!",
+    "tchau": "Até logo, Anderson! Foi um prazer falar com você.",
+    "desligar": "Não posso desligar a ligação, apenas você pode fazer isso apertando o botão vermelho!"
+};
 
 // ==========================================
 // FUNÇÕES PARA MANTER A TELA LIGADA (WAKE LOCK)
@@ -14,17 +38,12 @@ async function requestWakeLock() {
         try {
             wakeLock = await navigator.wakeLock.request('screen');
             console.log('✅ Tela mantida ligada durante a ligação.');
-            
-            // Se a tela for desligada ou o app minimizado, o wake lock é liberado
             wakeLock.addEventListener('release', () => {
-                console.log('⚠️ Wake Lock liberado pelo sistema.');
                 wakeLock = null;
             });
         } catch (err) {
             console.log(`Erro ao manter tela ligada: ${err.message}`);
         }
-    } else {
-        console.log('Seu navegador não suporta a API de manter tela ligada.');
     }
 }
 
@@ -36,7 +55,6 @@ function releaseWakeLock() {
     }
 }
 
-// Reativa a tela ligada se o usuário voltar para a aba durante a ligação
 document.addEventListener('visibilitychange', async () => {
     if (document.visibilityState === 'visible' && isCalling) {
         await requestWakeLock();
@@ -54,12 +72,14 @@ if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
     recognition.interimResults = false;
 
     recognition.onstart = () => { isListening = true; };
+    
     recognition.onresult = async (event) => {
         const userMessage = event.results[0][0].transcript;
         if (!userMessage.trim()) return;
         stopListening();
-        await sendToAI(userMessage);
+        await sendToAI(userMessage); // Envia a mensagem para a função que decide o que fazer
     };
+    
     recognition.onerror = (event) => { isListening = false; };
     recognition.onend = () => {
         isListening = false;
@@ -90,10 +110,7 @@ async function startCall() {
     isCalling = true;
     circle.classList.add('active');
     console.log("Ligação iniciada...");
-    
-    // 🔥 Ativa a tela ligada ao iniciar a chamada
     await requestWakeLock(); 
-    
     playAudioResponse("Olá, eu sou a nova.IA. Como posso ajudar?");
 }
 
@@ -103,15 +120,27 @@ function endCall() {
     isListening = false;
     circle.classList.remove('active');
     console.log("Ligação encerrada.");
-    
-    // 🔥 Libera a tela para apagar ao encerrar a chamada
     releaseWakeLock();
-    
     if (recognition) { try { recognition.stop(); } catch(e){} }
     window.speechSynthesis.cancel();
 }
 
+// ==========================================
+// 🌟 AQUI ACONTECE A MÁGICA DAS PALAVRAS-CHAVE
+// ==========================================
 async function sendToAI(message) {
+    const msgLower = message.toLowerCase(); // Transforma a fala em minúsculas para comparar
+
+    // 1. Verifica se a mensagem contém alguma palavra-chave personalizada
+    for (const [palavraChave, resposta] of Object.entries(respostasPersonalizadas)) {
+        if (msgLower.includes(palavraChave)) {
+            console.log(`🎯 Palavra-chave detectada: "${palavraChave}"`);
+            playAudioResponse(resposta); // Responde na hora, sem ir ao Gemini
+            return; // Para aqui e não gasta a cota do Google
+        }
+    }
+
+    // 2. Se não achou palavra-chave, envia para o Gemini normalmente
     try {
         const response = await fetch('/api/chat', {
             method: 'POST',
