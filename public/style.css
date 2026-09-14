@@ -52,14 +52,14 @@ main {
     transition: all 0.3s ease;
 }
 
-/* 🔥 NOVAS CORES DO CÍRCULO */
+/* Cores do Círculo */
 .circle.listening {
-    background-color: #00FF00; /* Verde quando ouve você */
+    background-color: #00FF00;
     box-shadow: 0 0 40px #00FF00;
 }
 
 .circle.speaking {
-    background-color: #FF0000; /* Vermelho quando a IA fala */
+    background-color: #FF0000;
     box-shadow: 0 0 40px #FF0000;
     animation: pulse 0.8s infinite alternate;
 }
@@ -71,37 +71,51 @@ main {
 
 footer {
     width: 100%;
-    max-width: 600px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .btn-container {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     width: 100%;
-    padding: 0 10px;
 }
 
+/* Estilo dos Botões (Circulares) */
 button {
     background: none;
     border: none;
     color: #FFF;
     font-weight: bold;
-    font-size: 1.2rem;
+    font-size: 1.5rem;
     cursor: pointer;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-}
-
-button::before {
-    content: '';
-    width: 70px;
-    height: 70px;
+    width: 90px;
+    height: 90px;
     border-radius: 50%;
-    display: block;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.3s ease;
+    text-transform: lowercase;
 }
 
-.btn-green::before { background-color: #00FF00; }
-.btn-red::before { background-color: #FF0000; }
-button:active::before { transform: scale(0.9); }
+.btn-red {
+    background-color: #FF0000;
+    box-shadow: 0 0 20px #FF0000;
+}
+
+.btn-green {
+    background-color: #00FF00;
+    color: #000;
+    box-shadow: 0 0 20px #00FF00;
+}
+
+/* Classe para esconder o botão */
+.hidden {
+    display: none !important;
+}
+
+button:active {
+    transform: scale(0.9);
+}
