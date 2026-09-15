@@ -98,11 +98,11 @@ const respostasPersonalizadas = {
     "boa noite": "Muito boa noite!",
     "tudo bem": "Tudo ótimo! Pronta para ajudar.",
     "oi": "Olá, como você está?",
-    "tchau": "Já vai? Foi um prazer falar com você!",
-    "até logo": "Até logo, Anderson!",
+    "fala algo": "beleza , vou fala ?voçé esta bem, comofoi hojé pra voçé!",
+    "foi bem": "hahahahahah, que legal!",
     "conte uma piada": "O que o pato disse para a pata? Vem quá! Ha ha ha!",
-    "alo": "Alô, é do além? Hahaha! Brincadeira, fala logo o que você quer!",
-    "bom dia é o escambau": "Bom dia é o escambau, hoje é dia de trabalhar!",
+    "alo": "oi quem é, diga?fala!",
+    "anderson": "brincadeira ne ?meu criandor,!",
     "canta uma música": "Lá lá lá... brilha brilha estrelinha, quem me dera ter um dinheirinho!",
     "quanto é dois mais dois": "É quatro, Anderson! Até eu que sou uma IA sei disso.",
     "qual é o seu nome": "Meu nome é nova.IA, prazer em conhecer você!"
@@ -200,7 +200,7 @@ async function sendTextMessage() {
     if (!hasGreeted) {
         hasGreeted = true;
         setTimeout(() => {
-            addMessageToChat("Olá! Eu sou a nova.IA. Como posso ajudar você hoje?", 'ai');
+            addMessageToChat("Olá! Eu sou a nova ,a inteligência artificial?", 'crianda por anderson');
         }, 800);
     }
 
@@ -242,7 +242,7 @@ async function sendTextMessage() {
     } catch (error) {
         console.error("Erro no chat de texto:", error);
         removerDigitando();
-        addMessageToChat("Desculpe, tive um problema no servidor.", 'ai');
+        addMessageToChat("Desculpe, a partindo de agora, você pode usa o modo dicionario,estou sem creditos,obrigado,.", 'ai');
     }
 }
 
@@ -415,7 +415,7 @@ async function startCall() {
     playDialTone();
     
     setTimeout(() => {
-        playAudioResponse("Olá, tudo bem? Eu sou a nova, inteligência artificial, treinamentos básicos, criada e programada por Anderson.");
+        playAudioResponse("Olá, sou a nova? Eu sou uma inteligência artificial, criada e programada por Anderson.");
     }, 1500);
 }
 
@@ -519,7 +519,7 @@ async function sendVoiceToAI(message) {
         }
     } catch (error) {
         console.error("Erro na IA:", error);
-        playAudioResponse("Desculpe, tive um problema no servidor.");
+        playAudioResponse("Desculpe, estou sem creditos?mas tem o modo dicionario,voçé usou muito hoje.");
     }
 }
 
