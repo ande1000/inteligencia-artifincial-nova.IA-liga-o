@@ -14,13 +14,13 @@ app.use(express.static(path.join(__dirname, 'public')));
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 // ==========================================
-// ROTA DO CHAT (GEMINI)
-// A voz agora é gerada no navegador (Web Speech API),
-// então não existe mais rota /api/tts no servidor.
+// ROTA DO CHAT (GEMINI) — AGORA COM MEMÓRIA
+// Recebe o histórico da conversa e manda junto
+// para o Gemini, para ele lembrar do contexto.
 // ==========================================
 app.post('/api/chat', async (req, res) => {
     try {
-        const { message, personality } = req.body;
+        const { message, personality, history } = req.body;
         if (!message) return res.status(400).json({ error: 'Mensagem vazia' });
 
         let estilo = "Responda de forma natural, educada e concisa.";
@@ -32,10 +32,29 @@ app.post('/api/chat', async (req, res) => {
 
         const model = genAI.getGenerativeModel({
             model: "gemini-2.5-flash",
-            systemInstruction: `Você é a nova.IA, uma inteligência artificial criada por Anderson. Você está em uma ligação telefônica. ${estilo} Fale como se estivesse conversando por voz. Não use emojis nem formatação markdown.`
+            systemInstruction: `Você é a nova.IA, uma inteligência artificial criada por Anderson. Você está em uma ligação telefônica. ${estilo} Fale como se estivesse conversando por voz. Não use emojis nem formatação markdown. Use o histórico da conversa para responder de forma contextualizada, lembrando do que já foi dito.`
         });
 
-        const result = await model.generateContent(message);
+        // Monta o histórico no formato que o Gemini espera.
+        // "history" chega do front como [{sender: 'user'|'ai', text: '...'}, ...]
+        let formattedHistory = [];
+        if (Array.isArray(history)) {
+            formattedHistory = history
+                .filter(h => h && h.text && h.sender)
+                .map(h => ({
+                    role: h.sender === 'user' ? 'user' : 'model',
+                    parts: [{ text: h.text }]
+                }));
+        }
+
+        // O Gemini exige que o histórico comece com role "user".
+        // Se o primeiro item for "model" (ex: mensagem de boas-vindas), removemos.
+        while (formattedHistory.length && formattedHistory[0].role !== 'user') {
+            formattedHistory.shift();
+        }
+
+        const chat = model.startChat({ history: formattedHistory });
+        const result = await chat.sendMessage(message);
         const responseText = result.response.text();
 
         res.json({ text: responseText });
