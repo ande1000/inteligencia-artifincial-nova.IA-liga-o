@@ -177,9 +177,8 @@ function iniciarNovaConversa() {
     hasGreeted = false;
     currentPersonality = 'normal';
     localStorage.removeItem(HISTORICO_KEY);
-
-    addMessageToChat("Olá! Eu sou a nova.IA. Como posso ajudar você hoje?", 'ai');
-    hasGreeted = true;
+    // A mensagem de saudação só aparece quando o usuário mandar a primeira mensagem
+    // (ver bloco "if (!hasGreeted)" dentro de sendTextMessage)
 }
 
 // ==========================================
