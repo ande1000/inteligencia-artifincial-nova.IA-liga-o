@@ -165,6 +165,24 @@ function salvarHistorico() {
 carregarHistorico();
 
 // ==========================================
+// 🌟 INICIAR NOVA CONVERSA
+// Limpa a tela, o histórico salvo e recomeça do zero
+// ==========================================
+function iniciarNovaConversa() {
+    const confirmar = confirm('Iniciar uma nova conversa? O histórico atual será apagado.');
+    if (!confirmar) return;
+
+    chatMessages.innerHTML = '';
+    historicoConversa = [];
+    hasGreeted = false;
+    currentPersonality = 'normal';
+    localStorage.removeItem(HISTORICO_KEY);
+
+    addMessageToChat("Olá! Eu sou a nova.IA. Como posso ajudar você hoje?", 'ai');
+    hasGreeted = true;
+}
+
+// ==========================================
 // TELA 1: CHAT DE TEXTO
 // ==========================================
 function handleKeyPress(event) {
