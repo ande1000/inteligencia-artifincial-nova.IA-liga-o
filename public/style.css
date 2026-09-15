@@ -255,12 +255,14 @@ body {
 .home-footer {
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 12px;
     padding-bottom: 10px;
 }
 
 .input-wrapper {
     flex-grow: 1;
+    flex-shrink: 1;
+    min-width: 0;
     display: flex;
     background-color: #222;
     border-radius: 30px;
@@ -270,6 +272,7 @@ body {
 
 #text-input {
     flex-grow: 1;
+    min-width: 0;
     background: none;
     border: none;
     color: #FFF;
@@ -285,6 +288,7 @@ body {
     font-size: 1.5rem;
     cursor: pointer;
     padding: 0 10px;
+    flex-shrink: 0;
 }
 
 #send-btn:active {
@@ -297,6 +301,9 @@ body {
     border: none;
     width: 55px;
     height: 55px;
+    min-width: 55px;
+    min-height: 55px;
+    flex-shrink: 0;
     border-radius: 50%;
     display: flex;
     justify-content: center;
