@@ -131,6 +131,40 @@ function switchScreen(screen) {
 }
 
 // ==========================================
+// 🌟 HISTÓRICO SALVO NO NAVEGADOR (localStorage)
+// ==========================================
+const HISTORICO_KEY = 'novaIA_historico';
+let historicoConversa = [];
+
+function carregarHistorico() {
+    try {
+        const salvo = localStorage.getItem(HISTORICO_KEY);
+        if (salvo) {
+            historicoConversa = JSON.parse(salvo);
+            historicoConversa.forEach(item => {
+                renderizarMensagem(item.text, item.sender);
+            });
+            if (historicoConversa.length > 0) hasGreeted = true;
+        }
+    } catch (e) {
+        console.error('Erro ao carregar histórico:', e);
+        historicoConversa = [];
+    }
+}
+
+function salvarHistorico() {
+    try {
+        // Mantém só as últimas 40 mensagens para não pesar o navegador
+        const recorte = historicoConversa.slice(-40);
+        localStorage.setItem(HISTORICO_KEY, JSON.stringify(recorte));
+    } catch (e) {
+        console.error('Erro ao salvar histórico:', e);
+    }
+}
+
+carregarHistorico();
+
+// ==========================================
 // TELA 1: CHAT DE TEXTO
 // ==========================================
 function handleKeyPress(event) {
@@ -171,29 +205,67 @@ async function sendTextMessage() {
     }
 
     try {
-        addMessageToChat("Pensando...", 'ai', true);
+        mostrarDigitando();
         const response = await fetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message, personality: currentPersonality })
+            body: JSON.stringify({
+                message,
+                personality: currentPersonality,
+                history: historicoConversa
+            })
         });
-        
-        const tempMsg = document.querySelector('.temp-msg');
-        if (tempMsg) tempMsg.remove();
+
+        removerDigitando();
 
         if (!response.ok) throw new Error('Erro no servidor');
         const data = await response.json();
-        
+
         addMessageToChat(data.text, 'ai');
     } catch (error) {
         console.error("Erro no chat de texto:", error);
-        const tempMsg = document.querySelector('.temp-msg');
-        if (tempMsg) tempMsg.remove();
+        removerDigitando();
         addMessageToChat("Desculpe, tive um problema no servidor.", 'ai');
     }
 }
 
-function addMessageToChat(text, sender, isTemp = false) {
+// 🌟 BOLINHAS ANIMADAS DE "DIGITANDO..."
+function mostrarDigitando() {
+    const rowDiv = document.createElement('div');
+    rowDiv.classList.add('message-row', 'ai', 'temp-msg');
+
+    const avatarDiv = document.createElement('div');
+    avatarDiv.classList.add('avatar');
+    avatarDiv.textContent = '✨';
+    rowDiv.appendChild(avatarDiv);
+
+    const msgDiv = document.createElement('div');
+    msgDiv.classList.add('message', 'ai-message');
+
+    const typingDiv = document.createElement('div');
+    typingDiv.classList.add('typing-indicator');
+    typingDiv.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+    msgDiv.appendChild(typingDiv);
+
+    rowDiv.appendChild(msgDiv);
+    chatMessages.appendChild(rowDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function removerDigitando() {
+    const tempMsg = document.querySelector('.temp-msg');
+    if (tempMsg) tempMsg.remove();
+}
+
+// Adiciona a mensagem na tela E salva no histórico
+function addMessageToChat(text, sender) {
+    renderizarMensagem(text, sender);
+    historicoConversa.push({ text, sender });
+    salvarHistorico();
+}
+
+// Só desenha a mensagem na tela, sem salvar (usado ao carregar histórico)
+function renderizarMensagem(text, sender) {
     const rowDiv = document.createElement('div');
     rowDiv.classList.add('message-row', sender === 'user' ? 'user' : 'ai');
 
@@ -206,9 +278,31 @@ function addMessageToChat(text, sender, isTemp = false) {
 
     const msgDiv = document.createElement('div');
     msgDiv.classList.add('message', sender === 'user' ? 'user-message' : 'ai-message');
-    if (isTemp) msgDiv.classList.add('temp-msg');
-    msgDiv.textContent = text;
-    
+
+    const textSpan = document.createElement('span');
+    textSpan.textContent = text;
+    msgDiv.appendChild(textSpan);
+
+    // 🌟 BOTÃO DE COPIAR
+    const copyBtn = document.createElement('button');
+    copyBtn.classList.add('copy-btn');
+    copyBtn.textContent = '📋';
+    copyBtn.title = 'Copiar mensagem';
+    copyBtn.onclick = (e) => {
+        e.stopPropagation();
+        navigator.clipboard.writeText(text).then(() => {
+            copyBtn.textContent = '✅';
+            copyBtn.classList.add('copied');
+            setTimeout(() => {
+                copyBtn.textContent = '📋';
+                copyBtn.classList.remove('copied');
+            }, 1500);
+        }).catch(() => {
+            console.error('Não foi possível copiar a mensagem.');
+        });
+    };
+    msgDiv.appendChild(copyBtn);
+
     rowDiv.appendChild(msgDiv);
     chatMessages.appendChild(rowDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -323,6 +417,40 @@ function endCall() {
 }
 
 // ==========================================
+// 🌟 COMANDOS DE VOZ INTELIGENTES
+// Retorna true se tratou o comando (não precisa ir para a IA)
+// ==========================================
+function tratarComandoInteligente(msgLower, mensagemOriginal) {
+    // Que horas são
+    if (msgLower.includes('que horas são') || msgLower.includes('que horas sao') || msgLower.includes('horas são') || msgLower === 'horas') {
+        const agora = new Date();
+        const horas = agora.getHours().toString().padStart(2, '0');
+        const minutos = agora.getMinutes().toString().padStart(2, '0');
+        playAudioResponse(`Agora são ${horas} horas e ${minutos} minutos.`);
+        return true;
+    }
+
+    // Que dia é hoje
+    if (msgLower.includes('que dia é hoje') || msgLower.includes('que dia e hoje') || msgLower.includes('data de hoje')) {
+        const hoje = new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' });
+        playAudioResponse(`Hoje é ${hoje}.`);
+        return true;
+    }
+
+    // Pesquisar sobre X
+    const pesquisaMatch = mensagemOriginal.match(/pesquisar (sobre |por )?(.+)/i);
+    if (pesquisaMatch && pesquisaMatch[2]) {
+        const termo = pesquisaMatch[2].trim();
+        playAudioResponse(`Abrindo uma pesquisa sobre ${termo}.`);
+        const url = `https://www.google.com/search?q=${encodeURIComponent(termo)}`;
+        setTimeout(() => window.open(url, '_blank'), 400);
+        return true;
+    }
+
+    return false;
+}
+
+// ==========================================
 // LÓGICA DE VOZ E PALAVRAS-CHAVE
 // ==========================================
 async function sendVoiceToAI(message) {
@@ -331,6 +459,9 @@ async function sendVoiceToAI(message) {
     for (const [comando, dados] of Object.entries(comandosPersonalidade)) {
         if (msgLower.includes(comando)) {
             currentPersonality = dados.personality;
+            historicoConversa.push({ text: message, sender: 'user' });
+            historicoConversa.push({ text: dados.resposta, sender: 'ai' });
+            salvarHistorico();
             playAudioResponse(dados.resposta);
             return;
         }
@@ -339,25 +470,71 @@ async function sendVoiceToAI(message) {
     for (const [palavraChave, resposta] of Object.entries(respostasPersonalizadas)) {
         if (msgLower.includes(palavraChave)) {
             console.log(`🎯 Palavra-chave detectada: "${palavraChave}"`);
+            historicoConversa.push({ text: message, sender: 'user' });
+            historicoConversa.push({ text: resposta, sender: 'ai' });
+            salvarHistorico();
             playAudioResponse(resposta);
             return;
         }
     }
 
+    if (tratarComandoInteligente(msgLower, message)) return;
+
     try {
         const response = await fetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message, personality: currentPersonality })
+            body: JSON.stringify({
+                message,
+                personality: currentPersonality,
+                history: historicoConversa
+            })
         });
         if (!response.ok) throw new Error(`Erro no servidor: ${response.status}`);
         const data = await response.json();
-        if (data.text) playAudioResponse(data.text);
-        else { if (isCalling) startListening(); }
+        if (data.text) {
+            historicoConversa.push({ text: message, sender: 'user' });
+            historicoConversa.push({ text: data.text, sender: 'ai' });
+            salvarHistorico();
+            playAudioResponse(data.text);
+        } else {
+            if (isCalling) startListening();
+        }
     } catch (error) {
         console.error("Erro na IA:", error);
         playAudioResponse("Desculpe, tive um problema no servidor.");
     }
+}
+
+// ==========================================
+// 🌟 DETECÇÃO DE EMOÇÃO NO TEXTO
+// Ajusta pitch/rate da voz conforme o tom da frase
+// ==========================================
+function detectarEmocao(text) {
+    const textoLower = text.toLowerCase();
+
+    // Piada / bom humor: exclamação com "ha", "kk", "rs", ou palavras de humor
+    if (/ha ?ha|kk+|rs+\b|piada|engraçad|hahaha/.test(textoLower)) {
+        return { rate: 1.15, pitch: 1.25 };
+    }
+
+    // Empolgação / entusiasmo: várias exclamações ou palavras animadas
+    if (/!{1,}/.test(text) && /(incrível|ótimo|parabéns|excelente|adorei|fantástico|maravilh)/.test(textoLower)) {
+        return { rate: 1.1, pitch: 1.15 };
+    }
+
+    // Pergunta: leve subida no final
+    if (text.trim().endsWith('?')) {
+        return { rate: 1.0, pitch: 1.08 };
+    }
+
+    // Assunto sério/triste: mais devagar e grave
+    if (/(sinto muito|lamento|infelizmente|triste|problema sério|falecimento|luto)/.test(textoLower)) {
+        return { rate: 0.9, pitch: 0.9 };
+    }
+
+    // Tom neutro padrão
+    return { rate: 1.0, pitch: 1.0 };
 }
 
 // ==========================================
@@ -383,8 +560,10 @@ function playAudioResponse(text) {
 
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'pt-BR';
-    utterance.rate = 1;
-    utterance.pitch = 1;
+
+    const emocao = detectarEmocao(text);
+    utterance.rate = emocao.rate;
+    utterance.pitch = emocao.pitch;
 
     const voz = vozesDisponiveis.find(v => v.name === vozEscolhida);
     if (voz) utterance.voice = voz;
